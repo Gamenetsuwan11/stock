@@ -79,7 +79,7 @@ h2{font-size:16px;margin:4px 0 0;font-weight:700}
 .f label{font-size:12.5px;color:var(--muted);font-weight:500}
 input,select{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:9px 10px;min-height:44px;width:100%;min-width:0}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.line3{display:grid;grid-template-columns:1.6fr .8fr 1fr auto;gap:6px;align-items:end}
+.line3{display:grid;grid-template-columns:1.3fr 1fr auto;padding-bottom:8px;border-bottom:1px dashed var(--line);gap:6px;align-items:end}
 .line3 .x{width:40px;height:44px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--bad);font-size:18px;cursor:pointer}
 .tbl{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
 table{border-collapse:collapse;width:100%;font-size:13.5px}
@@ -137,6 +137,8 @@ td.neg{color:var(--bad)}
 .chk{border-radius:var(--r);padding:10px 12px;font-size:13.5px;display:flex;flex-direction:column;gap:4px}
 .chk.ok{background:var(--accent-soft);color:var(--accent)} .chk.warn{background:var(--warn-soft);color:var(--warn)}
 .chk a{color:inherit}
+.line3>.f:first-child{grid-column:1/-1}
+.qu{display:flex;gap:4px}.qu input{flex:1 1 0;min-width:0}.qu select{flex:0 0 auto;width:auto;padding-inline:6px}
 .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%}
 </style>
 </head>
@@ -433,15 +435,16 @@ $("#cam-close").addEventListener("click",closeCam);
 $("#scanfile").addEventListener("change",()=>{if(!$("#cam").hidden)closeCam()});
 
 /* ---------- รับเข้า (หน่วยแพ็ค) ---------- */
-let bLines=[{pid:"",packs:"",amount:""}],bImg="",bForce=false;
+let bLines=[{pid:"",qty:"",unit:"pack",amount:""}],bImg="",bForce=false;
 const prodOptions=(sel,blank)=>(blank?`<option value="">— เลือกสินค้า —</option>`:"")+plist().map(p=>`<option value="${esc(p.id)}"${p.id===sel?" selected":""}>${esc(p.name)}</option>`).join("");
-function unitTxt(l){const p=P(l.pid);if(!p||!(+l.packs>0))return"";const k=packOf(p),q=+l.packs*k;
-  let t=`= ${num(q)} ลูก (${k} ลูก/แพ็ค)`;if(+l.amount>0)t+=` · ${baht(l.amount/l.packs,true)}/แพ็ค · ทุน ${baht(l.amount/q,true)}/ลูก`;
+const pcsOf=l=>{const p=P(l.pid);if(!p||!(+l.qty>0))return 0;return l.unit==="pc"?+l.qty:+l.qty*packOf(p)};
+function unitTxt(l){const p=P(l.pid);const q=pcsOf(l);if(!q)return"";const k=packOf(p),pk=q/k;
+  let t=l.unit==="pc"?`= ${num(pk)} แพ็ค (${k} ลูก/แพ็ค)`:`= ${num(q)} ลูก (${k} ลูก/แพ็ค)`;if(+l.amount>0)t+=` · ${baht(l.amount/pk,true)}/แพ็ค · ทุน ${baht(l.amount/q,true)}/ลูก`;
   else if(S.lastPack[p.id])t+=` · ราคาครั้งก่อน ${baht(S.lastPack[p.id],true)}/แพ็ค`;return t}
 function renderBLines(){
   $("#b-lines").innerHTML=bLines.map((l,i)=>`<div class="line3">
     <div class="f"><label for="bl-p-${i}">สินค้า</label><select id="bl-p-${i}" data-bl="${i}" data-k="pid">${prodOptions(l.pid,true)}</select></div>
-    <div class="f"><label for="bl-q-${i}">จำนวน (แพ็ค)</label><input id="bl-q-${i}" type="number" inputmode="decimal" min="0" step="any" data-bl="${i}" data-k="packs" value="${esc(l.packs)}"></div>
+    <div class="f"><label for="bl-q-${i}">จำนวน</label><div class="qu"><input id="bl-q-${i}" type="number" inputmode="decimal" min="0" step="any" data-bl="${i}" data-k="qty" value="${esc(l.qty)}"><select aria-label="หน่วย" data-bl="${i}" data-k="unit"><option value="pack"${l.unit!=="pc"?" selected":""}>แพ็ค</option><option value="pc"${l.unit==="pc"?" selected":""}>ลูก</option></select></div></div>
     <div class="f"><label for="bl-a-${i}">ยอดเงิน (บาท)</label><input id="bl-a-${i}" type="number" inputmode="decimal" min="0" step="0.01" data-bl="${i}" data-k="amount" value="${esc(l.amount)}"></div>
     <button class="x" type="button" data-blx="${i}" aria-label="ลบรายการ">×</button>
     <div class="small muted" style="grid-column:1/-1;margin-top:-2px" id="bl-u-${i}">${unitTxt(l)}</div></div>`).join("");
@@ -451,14 +454,14 @@ function updBTotal(){const s=bLines.reduce((a,l)=>a+(+l.amount||0),0);$("#b-tota
   const el=$("#b-match");if(el&&billTotal){const ok=Math.abs(s-billTotal)<0.01;el.className="chk "+(ok?"ok":"warn");el.querySelector("span").textContent=ok?`ยอดรวมตรงกับบิล ${baht(billTotal)} ✓`:`ยอดรวม ${baht(s)} ไม่ตรงกับยอดในบิล ${baht(billTotal)} ตรวจรายการอีกครั้ง`}}
 $("#b-lines").addEventListener("input",e=>{const i=e.target.dataset.bl;if(i==null)return;bLines[i][e.target.dataset.k]=e.target.value;$("#bl-u-"+i).textContent=unitTxt(bLines[i]);updBTotal()});
 $("#b-lines").addEventListener("change",e=>{const i=e.target.dataset.bl;if(i==null)return;bLines[i][e.target.dataset.k]=e.target.value;$("#bl-u-"+i).textContent=unitTxt(bLines[i])});
-$("#b-lines").addEventListener("click",e=>{const i=e.target.dataset.blx;if(i==null)return;bLines.splice(+i,1);if(!bLines.length)bLines.push({pid:"",packs:"",amount:""});renderBLines()});
-$("#b-add").addEventListener("click",()=>{bLines.push({pid:"",packs:"",amount:""});renderBLines()});
-function resetBill(){bLines=[{pid:"",packs:"",amount:""}];bImg="";bForce=false;billTotal=0;$("#b-no").value="";$("#b-check").hidden=true;$("#b-check").innerHTML="";renderBLines()}
+$("#b-lines").addEventListener("click",e=>{const i=e.target.dataset.blx;if(i==null)return;bLines.splice(+i,1);if(!bLines.length)bLines.push({pid:"",qty:"",unit:"pack",amount:""});renderBLines()});
+$("#b-add").addEventListener("click",()=>{bLines.push({pid:"",qty:"",unit:"pack",amount:""});renderBLines()});
+function resetBill(){bLines=[{pid:"",qty:"",unit:"pack",amount:""}];bImg="";bForce=false;billTotal=0;$("#b-no").value="";$("#b-check").hidden=true;$("#b-check").innerHTML="";renderBLines()}
 async function saveBill(){
-  const lines=bLines.filter(l=>l.pid&&+l.packs>0).map(l=>({pid:l.pid,packs:+l.packs,amount:+l.amount||0}));
-  if(!lines.length){toast("ใส่อย่างน้อย 1 รายการ: เลือกสินค้าและจำนวนแพ็ค",true);return}
+  const lines=bLines.filter(l=>l.pid&&+l.qty>0).map(l=>({pid:l.pid,pcs:pcsOf(l),packs:pcsOf(l)/packOf(P(l.pid)),amount:+l.amount||0}));
+  if(!lines.length){toast("ใส่อย่างน้อย 1 รายการ: เลือกสินค้าและจำนวน",true);return}
   if(lines.some(l=>!(l.amount>0))){toast("ใส่ยอดเงินของทุกรายการ เพื่อคิดต้นทุน",true);return}
-  const pcs=lines.reduce((a,l)=>a+l.packs*packOf(P(l.pid)),0);const btn=$("#b-save");btn.disabled=true;
+  const pcs=lines.reduce((a,l)=>a+l.pcs,0);const btn=$("#b-save");btn.disabled=true;
   try{const st=await call("receive",{date:$("#b-date").value||today(),no:$("#b-no").value.trim(),supplier:$("#b-sup").value.trim(),img:bImg,force:bForce,lines});
     reportDirty=true;apply(st);toast("บันทึกบิลแล้ว สต็อกเพิ่มขึ้น "+num(pcs)+" ลูก");resetBill()}
   catch(e){const m=String(e&&e.message||e);
@@ -481,7 +484,7 @@ $("#billfile").addEventListener("change",async e=>{
     const r=await call("readBill",{data,mime:isPdf?"application/pdf":"image/jpeg",name:f.name});
     bImg=r.img||"";billTotal=r.total||0;bForce=false;
     if(r.date)$("#b-date").value=r.date;if(r.no)$("#b-no").value=r.no;if(r.supplier)$("#b-sup").value=r.supplier;
-    bLines=r.lines.length?r.lines.map(l=>({pid:l.pid,packs:l.packs||"",amount:l.amount||""})):[{pid:"",packs:"",amount:""}];
+    bLines=r.lines.length?r.lines.map(l=>({pid:l.pid,qty:l.packs||"",unit:"pack",amount:l.amount||""})):[{pid:"",qty:"",unit:"pack",amount:""}];
     const sum=r.lines.reduce((a,l)=>a+(+l.amount||0),0);
     c.innerHTML=`${r.dup?`<div class="chk warn"><span>บิลเลขที่ ${esc(r.no)} เคยบันทึกไปแล้ว ระวังบันทึกซ้ำ</span></div>`:""}
       <div class="chk ${r.lines.length?"ok":"warn"}"><span>${r.lines.length?`อ่านได้ ${r.lines.length} รายการ${r.no?" · บิล "+esc(r.no):""} ตรวจจำนวนแพ็คและยอดเงินก่อนบันทึก`:"อ่านรายการสินค้าในบิลไม่ได้ ลองถ่ายใหม่ให้ตรงและชัด หรือกรอกเอง"}</span>
@@ -494,7 +497,7 @@ $("#billfile").addEventListener("change",async e=>{
 function renderBills(){
   const el=$("#billlist");const bs=S.bills||[];
   if(!bs.length){el.innerHTML=`<div class="empty">ยังไม่มีบิลรับเข้า ถ่ายรูปบิลแรกด้านบน แล้วต้นทุนกับสต็อกจะเริ่มคำนวณ</div>`;return}
-  el.innerHTML=bs.map(b=>{const det=b.lines.map(l=>esc(l.name)+" "+(l.packs?num(l.packs)+" แพ็ค":num(l.qty)+" ลูก")+" ("+baht(l.amount)+")").join(", ");
+  el.innerHTML=bs.map(b=>{const det=b.lines.map(l=>esc(l.name)+" "+(l.packs&&Number.isInteger(+l.packs)?num(l.packs)+" แพ็ค":num(l.qty)+" ลูก")+" ("+baht(l.amount)+")").join(", ");
     return `<div class="li"><div class="meta"><b>${thDate(b.date)} · ${baht(b.total,true)}</b><span>${b.no?"บิล "+esc(b.no)+" · ":""}${b.supplier?esc(b.supplier)+" · ":""}${det}${b.img?` · <a href="${esc(b.img)}" target="_blank" rel="noopener">รูปบิล</a>`:""}</span></div>
     <div class="right"><span class="confirm"><button class="btn ghost mini" type="button" data-delbill="${esc(b.id)}">ลบ</button></span></div></div>`}).join("");
 }
