@@ -359,11 +359,11 @@ function renderCart(){
   let tot=0,full=0,over=false;
   const priced=ids.every(id=>+P(id)?.price>0);const pr=priced?priceCart(ids.map(id=>({pid:id,qty:S.cart[id]}))):{};
   const rows=ids.map(id=>{const p=P(id)||{name:"?"};const q=S.cart[id];const base=(+p.price||0)*q;const sub=priced?pr[id]:base;tot+=sub;full+=base;if(q>(S.stock[id]||0))over=true;
-    return `<div class="cart-line"><div class="meta"><b>${esc(p.name)}</b><div class="small muted">${baht(p.price)} × ${q}${sub<base?" · โปร":""} = ${baht(sub,sub%1!==0)}</div></div>
+    return `<div class="cart-line"><div class="meta"><b>${esc(p.name)}</b><div class="small muted">${baht(p.price)} × ${q} = ${baht(base)}</div></div>
     <div class="step"><button type="button" data-dec="${esc(id)}" aria-label="ลด">−</button><span>${q}</span><button type="button" data-inc="${esc(id)}" aria-label="เพิ่ม">+</button></div><span></span></div>`}).join("");
   el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">ตะกร้า</h2><button class="btn ghost mini" type="button" id="cart-clear">ล้าง</button></div>
   <div>${rows}</div>${over?`<div class="notice small">บางรายการขายเกินสต็อกในระบบ ตรวจสอบว่าบันทึกบิลรับเข้าครบหรือยัง</div>`:""}
-  ${tot<full?`<div class="total small"><span>ส่วนลดโปร</span><span>−${baht(full-tot,(full-tot)%1!==0)}</span></div>`:""}
+  ${tot<full?`<div class="total small"><span>ส่วนลดโปร${(()=>{const t=[...new Set(ids.map(id=>promoTxt(P(id))).filter(Boolean))];return t.length?" ("+t.join(", ")+")":""})()}</span><span>−${baht(full-tot,(full-tot)%1!==0)}</span></div>`:""}
   <div class="total"><span>รวมทั้งหมด</span><b>${baht(tot)}</b></div>
   <button class="btn primary" type="button" id="cart-ok" style="font-size:17px">ยืนยันขาย ${baht(tot)}</button>`;
 }
