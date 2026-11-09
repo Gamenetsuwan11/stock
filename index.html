@@ -218,10 +218,10 @@ td.neg{color:var(--bad)}
     </table></div>
     <div class="card">
       <h2 style="margin:0">ตัดของเสีย / ปรับยอดสต็อก (หน่วยเป็นลูก)</h2>
-      <p class="small muted" style="margin:0">ใช้เมื่อของเสีย หมดอายุ หรือนับจริงแล้วไม่ตรงกับระบบ ของเสียจะคิดเป็นต้นทุนที่สูญเสีย</p>
+      <p class="small muted" style="margin:0" id="w-help">ของเสียและของขาดจากการนับ คิดเป็นต้นทุนที่สูญเสีย ส่วน “ตั้งสต็อกผิด” แก้แค่ยอดคงเหลือ ไม่กระทบต้นทุนและกำไร</p>
       <div class="f"><label for="w-p">สินค้า</label><select id="w-p"></select></div>
       <div class="row2">
-        <div class="f"><label for="w-type">ประเภท</label><select id="w-type"><option value="waste">ของเสีย/ทิ้ง (ตัดออก)</option><option value="count">นับจริงได้ (ตั้งยอดใหม่)</option></select></div>
+        <div class="f"><label for="w-type">ประเภท</label><select id="w-type"><option value="waste">ของเสีย/ทิ้ง (ตัดออก)</option><option value="count">นับจริงได้ ขาด/เกิน (คิดเป็นต้นทุน)</option><option value="fix">ตั้งสต็อกผิด แก้ยอด (ไม่คิดต้นทุน)</option></select></div>
         <div class="f"><label for="w-q" id="w-ql">จำนวนที่ตัดออก</label><input type="number" inputmode="numeric" min="0" id="w-q"></div>
       </div>
       <div class="f"><label for="w-note">หมายเหตุ</label><input id="w-note" placeholder="เช่น นึ่งค้างเกิน 1 วัน"></div>
@@ -378,7 +378,7 @@ function renderToday(){
   const el=$("#todaylist");const list=S.todayTx||[];
   if(!list.length){el.innerHTML=`<div class="empty">ยังไม่มีการขายวันนี้</div>`;return}
   el.innerHTML=list.map(t=>{const names=t.items.map(i=>esc(i.name)+" ×"+num(i.qty)).join(", ");
-    const label=t.type==="ขาย"?baht(t.amount):t.type==="ของเสีย"?'<span class="pill warn">ของเสีย</span>':'<span class="pill ok">ปรับยอด</span>';
+    const label=t.type==="ขาย"?baht(t.amount):t.type==="ของเสีย"?'<span class="pill warn">ของเสีย</span>':t.type==="แก้ยอดสต็อก"?'<span class="pill ok">แก้ยอดสต็อก</span>':'<span class="pill warn">ปรับยอด</span>';
     return `<div class="li ${t.void?"void":""}"><div class="meta"><b>${esc(t.time)} · ${label}</b><span>${names}${t.note?" — "+esc(t.note):""}</span></div>
     <div class="right">${t.void?'<span class="small muted">ยกเลิกแล้ว</span>':`<span class="confirm"><button class="btn ghost mini" type="button" data-void="${esc(t.id)}">ยกเลิก</button></span>`}</div></div>`}).join("");
 }
@@ -513,10 +513,10 @@ function renderStock(){
   <div class="kpi"><span>ใกล้หมด</span><b style="color:var(--warn)">${low}</b></div><div class="kpi"><span>หมดแล้ว</span><b style="color:var(--bad)">${out}</b></div>`;
   const sel=$("#w-p"),v=sel.value;sel.innerHTML=prodOptions(v,false);
 }
-$("#w-type").addEventListener("change",e=>{$("#w-ql").textContent=e.target.value==="waste"?"จำนวนที่ตัดออก":"จำนวนที่นับได้จริง"});
+$("#w-type").addEventListener("change",e=>{$("#w-ql").textContent=e.target.value==="waste"?"จำนวนที่ตัดออก":e.target.value==="fix"?"ยอดคงเหลือที่ถูกต้อง":"จำนวนที่นับได้จริง"});
 $("#w-save").addEventListener("click",async()=>{const pid=$("#w-p").value,type=$("#w-type").value,q=$("#w-q").value;
   if(!pid||q===""||+q<0||(type==="waste"&&!(+q>0))){toast("เลือกสินค้าและใส่จำนวน",true);return}
-  if(await act("adjust",[{pid,type,qty:+q,note:$("#w-note").value.trim()}],type==="waste"?"ตัดของเสียแล้ว":"ปรับยอดแล้ว",$("#w-save"))){$("#w-q").value="";$("#w-note").value=""}});
+  if(await act("adjust",[{pid,type,qty:+q,note:$("#w-note").value.trim()}],type==="waste"?"ตัดของเสียแล้ว":type==="fix"?"แก้ยอดสต็อกแล้ว (ไม่คิดต้นทุน)":"ปรับยอดแล้ว",$("#w-save"))){$("#w-q").value="";$("#w-note").value=""}});
 
 /* ---------- สรุป (รายวัน/สัปดาห์/เดือน/ปี) ---------- */
 let curRange="d",curOff=0,curGran="d",R={byDay:{},byP:{}},reportDirty=true,repKey="";
