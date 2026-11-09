@@ -44,7 +44,7 @@ header h1 small{font-weight:500;font-size:13px;opacity:.85}
 .hstats div{display:flex;flex-direction:column;min-width:0}
 .hstats span{font-size:11.5px;opacity:.85}
 .hstats b{font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(6,1fr);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
 nav.tabs button{border:0;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px 9px;text-decoration:none;color:var(--muted);font-size:12px;font-weight:500}
 nav.tabs button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 nav.tabs button[aria-current="page"]{color:var(--accent)}
@@ -139,6 +139,11 @@ td.neg{color:var(--bad)}
 .chk a{color:inherit}
 .line3>.f:first-child{grid-column:1/-1}
 .qu{display:flex;gap:4px}.qu input{flex:1 1 0;min-width:0}.qu select{flex:0 0 auto;width:auto;padding-inline:6px}
+.xgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px}
+.xbtn{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 8px;cursor:pointer;display:flex;flex-direction:column;gap:2px;align-items:center;min-height:64px;justify-content:center;user-select:none;-webkit-user-select:none}
+.xbtn b{font-size:14px;font-weight:600}.xbtn span{font-size:12px;color:var(--muted)}
+.xbtn[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.xform{display:flex;flex-direction:column;gap:10px;border-top:1px dashed var(--line);padding-top:12px}
 .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%}
 </style>
 </head>
@@ -147,7 +152,7 @@ td.neg{color:var(--bad)}
   <h1>ร้านซาลาเปาขนมจีบ By Game <small id="hdate"></small></h1>
   <div class="hstats">
     <div><span>ขายวันนี้</span><b id="hs-rev">–</b></div>
-    <div><span>ต้นทุนวันนี้</span><b id="hs-cost">–</b></div>
+    <div><span>ต้นทุน+ค่าใช้จ่าย</span><b id="hs-cost">–</b></div>
     <div><span>กำไรวันนี้</span><b id="hs-profit">–</b></div>
   </div>
 </div></header>
@@ -245,6 +250,7 @@ td.neg{color:var(--bad)}
     </div>
     <div class="kpis" id="kpis"></div>
     <div class="card chart" id="chartcard"><h2 style="margin:0" id="chart-title">ยอดขายและกำไร</h2><div id="chart"></div></div>
+    <div class="card" id="catcard"><h2 style="margin:0">ค่าใช้จ่ายแยกหมวด</h2><div class="list" id="catlist"></div></div>
     <h2>แยกตามสินค้า</h2>
     <div class="tbl"><table>
       <thead><tr><th>สินค้า</th><th>ขาย (ชิ้น)</th><th>ยอดขาย</th><th>ต้นทุน</th><th>กำไร</th></tr></thead>
@@ -260,12 +266,39 @@ td.neg{color:var(--bad)}
       <button data-g="y" aria-pressed="false">ประจำปี</button>
     </div>
     <div class="tbl"><table>
-      <thead><tr><th id="g-head">วันที่</th><th>ขาย (ชิ้น)</th><th>ยอดขาย</th><th>ต้นทุน</th><th>ของเสีย</th><th>กำไร</th></tr></thead>
+      <thead><tr><th id="g-head">วันที่</th><th>ขาย (ชิ้น)</th><th>ยอดขาย</th><th>ต้นทุน</th><th>ของเสีย</th><th>ค่าใช้จ่าย</th><th>กำไร</th></tr></thead>
       <tbody id="gbody"></tbody><tfoot id="gfoot"></tfoot>
     </table></div>
   </section>
 
   <!-- สินค้า -->
+  <!-- ค่าใช้จ่าย -->
+  <section class="view" id="v-expense" hidden>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:baseline"><h2 style="margin:0">ค่าใช้จ่ายวันนี้</h2><b id="x-total" style="font-size:20px">฿0</b></div>
+      <p class="small muted" style="margin:0">แตะหมวด ใส่ยอดเงิน แล้วกดบันทึก ระบบจำยอดล่าสุดของแต่ละหมวดไว้ให้</p>
+      <div class="xgrid" id="x-cats"></div>
+      <div id="x-form" class="xform" hidden>
+        <b id="x-cat"></b>
+        <div class="row2">
+          <div class="f"><label for="x-amt">ยอดเงิน (บาท)</label><input id="x-amt" type="number" inputmode="decimal" min="0" step="0.01"></div>
+          <div class="f"><label for="x-note">หมายเหตุ</label><input id="x-note" placeholder="ไม่ใส่ก็ได้"></div>
+        </div>
+        <div style="display:flex;gap:8px"><button class="btn primary" id="x-save" type="button" style="flex:1">บันทึกค่าใช้จ่าย</button><button class="btn ghost" id="x-cancel" type="button">ปิด</button></div>
+      </div>
+    </div>
+    <div class="card"><div class="list" id="x-list"></div></div>
+    <div class="card">
+      <h2 style="margin:0">เพิ่มหมวดค่าใช้จ่าย</h2>
+      <div class="row2">
+        <div class="f"><label for="xc-name">ชื่อหมวด</label><input id="xc-name" placeholder="เช่น ค่าน้ำ"></div>
+        <div class="f"><label for="xc-price">ยอดปกติ (บาท)</label><input id="xc-price" type="number" inputmode="decimal" min="0" placeholder="ไม่ใส่ก็ได้"></div>
+      </div>
+      <button class="btn" id="xc-save" type="button">เพิ่มหมวด</button>
+      <p class="small muted" style="margin:0">ซ่อนหมวดที่ไม่ใช้: กดค้างที่ปุ่มหมวด 1 วินาที หรือแก้ในชีต “หมวดค่าใช้จ่าย”</p>
+    </div>
+  </section>
+
   <section class="view" id="v-products" hidden>
     <div class="card"><h2 style="margin:0">แพ็คและโปรโมชัน</h2><p class="small muted" style="margin:0">จำนวนลูกต่อแพ็คใช้แปลงบิลรับเข้า โปรคิดแบบคละไส้ในกลุ่มเดียวกัน</p><div class="list" id="glist"></div></div>
     <div class="notice info small">ตั้งราคาขายต่อลูก และจำนวนที่จะให้เตือนว่าใกล้หมด ต้นทุนดึงจากบิลรับเข้าโดยอัตโนมัติ</div>
@@ -290,6 +323,7 @@ td.neg{color:var(--bad)}
   <button type="button" data-v="receive"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>รับเข้า</button>
   <button type="button" data-v="stock"><svg viewBox="0 0 24 24"><path d="M3 8l9-5 9 5-9 5z"/><path d="M3 8v8l9 5 9-5V8"/></svg>สต็อก</button>
   <button type="button" data-v="report"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>สรุปกำไร</button>
+  <button type="button" data-v="expense"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/></svg>จ่าย</button>
   <button type="button" data-v="products"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>สินค้า</button>
 </nav>
 <script>
@@ -519,7 +553,7 @@ $("#w-save").addEventListener("click",async()=>{const pid=$("#w-p").value,type=$
   if(await act("adjust",[{pid,type,qty:+q,note:$("#w-note").value.trim()}],type==="waste"?"ตัดของเสียแล้ว":type==="fix"?"แก้ยอดสต็อกแล้ว (ไม่คิดต้นทุน)":"ปรับยอดแล้ว",$("#w-save"))){$("#w-q").value="";$("#w-note").value=""}});
 
 /* ---------- สรุป (รายวัน/สัปดาห์/เดือน/ปี) ---------- */
-let curRange="d",curOff=0,curGran="d",R={byDay:{},byP:{}},reportDirty=true,repKey="";
+let curRange="d",curOff=0,curGran="d",R={byDay:{},byP:{},byCat:{}},reportDirty=true,repKey="";
 function weekStart(d){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());x.setDate(x.getDate()-((x.getDay()+6)%7));return x}
 function bucketOf(k,g){if(g==="d")return k;if(g==="w")return dkey(weekStart(kd(k)));if(g==="m")return k.slice(0,7);return k.slice(0,4)}
 function periodBounds(g,off){const n=kd(today());let s,e;
@@ -535,7 +569,7 @@ function bucketLabel(b,g){
   if(g==="w"){const s=kd(b),e=new Date(s);e.setDate(e.getDate()+6);return fmtD(s,{day:"numeric",month:"short"})+" – "+fmtD(e,{day:"numeric",month:"short",year:"2-digit"})}
   if(g==="m"){const [y,m]=b.split("-").map(Number);return fmtD(new Date(y,m-1,1),{month:"long",year:"numeric"})}
   return "ปี "+(+b+543)}
-function aggregate(byDay,g,filter){const o={};for(const [k,v] of Object.entries(byDay)){if(filter&&!filter(k))continue;const b=bucketOf(k,g);const x=o[b]||(o[b]={rev:0,cost:0,waste:0,q:0});x.rev+=v.rev;x.cost+=v.cost;x.waste+=v.waste;x.q+=v.q||0}return o}
+function aggregate(byDay,g,filter){const o={};for(const [k,v] of Object.entries(byDay)){if(filter&&!filter(k))continue;const b=bucketOf(k,g);const x=o[b]||(o[b]={rev:0,cost:0,waste:0,q:0,exp:0});x.rev+=v.rev;x.cost+=v.cost;x.waste+=v.waste;x.q+=v.q||0;x.exp+=v.exp||0}return o}
 $("#range").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;curRange=b.dataset.r;curOff=0;
   $("#range").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false"));loadReport()});
 $("#p-prev").addEventListener("click",()=>{curOff--;loadReport()});
@@ -552,11 +586,14 @@ function renderPeriodNav(Pd){$("#pnav").hidden=!Pd;if(!Pd)return;
   const names={d:["วันนี้","เมื่อวาน"],w:["สัปดาห์นี้","สัปดาห์ที่แล้ว"],m:["เดือนนี้","เดือนที่แล้ว"],y:["ปีนี้","ปีที่แล้ว"]}[curRange];
   $("#p-label").textContent=bucketLabel(bucketOf(Pd.sk,curRange),curRange);$("#p-sub").textContent=curOff===0?names[0]:curOff===-1?names[1]:"";$("#p-next").disabled=curOff===0}
 function renderReport(Pd){
-  const f=Pd?k=>k>=Pd.sk&&k<=Pd.ek:null;const t=Object.values(aggregate(R.byDay,"y",f)).reduce((a,x)=>({rev:a.rev+x.rev,cost:a.cost+x.cost,waste:a.waste+x.waste,q:a.q+x.q}),{rev:0,cost:0,waste:0,q:0});
-  const gp=t.rev-t.cost,net=gp-t.waste,m=t.rev?gp/t.rev*100:0;
-  $("#kpis").innerHTML=`<div class="kpi main"><span>กำไร (หลังหักของเสีย)</span><b style="${net<0?"color:var(--bad)":""}">${baht(net)}</b></div>
+  const f=Pd?k=>k>=Pd.sk&&k<=Pd.ek:null;const t=Object.values(aggregate(R.byDay,"y",f)).reduce((a,x)=>({rev:a.rev+x.rev,cost:a.cost+x.cost,waste:a.waste+x.waste,q:a.q+x.q,exp:a.exp+x.exp}),{rev:0,cost:0,waste:0,q:0,exp:0});
+  const gp=t.rev-t.cost,net=gp-t.waste-t.exp,m=t.rev?gp/t.rev*100:0;
+  $("#kpis").innerHTML=`<div class="kpi main"><span>กำไรสุทธิ (หักต้นทุน ของเสีย และค่าใช้จ่าย)</span><b style="${net<0?"color:var(--bad)":""}">${baht(net)}</b></div>
   <div class="kpi"><span>ยอดขาย · ${num(t.q)} ชิ้น</span><b>${baht(t.rev)}</b></div><div class="kpi"><span>ต้นทุนสินค้าที่ขาย</span><b>${baht(t.cost)}</b></div>
-  <div class="kpi"><span>กำไรขั้นต้น · ${num(m.toFixed(1))}%</span><b>${baht(gp)}</b></div><div class="kpi"><span>ของเสีย (ทุน)</span><b>${baht(t.waste)}</b></div>`;
+  <div class="kpi"><span>กำไรขั้นต้น · ${num(m.toFixed(1))}%</span><b>${baht(gp)}</b></div><div class="kpi"><span>ของเสีย (ทุน)</span><b>${baht(t.waste)}</b></div>
+  <div class="kpi"><span>ค่าใช้จ่ายอื่น</span><b>${baht(t.exp)}</b></div><div class="kpi"><span>ต้นทุนรวมทั้งหมด</span><b>${baht(t.cost+t.waste+t.exp)}</b></div>`;
+  {const cats=Object.entries(R.byCat||{}).sort((a,b)=>b[1]-a[1]);$("#catcard").hidden=!cats.length;
+   $("#catlist").innerHTML=cats.map(([c,v])=>`<div class="li"><span>${esc(c)}</span><b>${baht(v,v%1!==0)}</b></div>`).join("")+(cats.length>1?`<div class="li"><b>รวม</b><b>${baht(t.exp,t.exp%1!==0)}</b></div>`:"")}
   const rows=Object.values(R.byP||{}).sort((a,b)=>(b.rev-b.cost)-(a.rev-a.cost));const T={q:0,rev:0,cost:0};
   $("#repbody").innerHTML=rows.map(x=>{T.q+=x.q;T.rev+=x.rev;T.cost+=x.cost;return `<tr><td>${esc(x.name)}</td><td>${num(x.q)}</td><td>${baht(x.rev)}</td><td>${baht(x.cost)}</td><td><b>${baht(x.rev-x.cost)}</b></td></tr>`}).join("")||`<tr><td colspan="5" class="empty">ยังไม่มีการขายในช่วงนี้</td></tr>`;
   $("#repfoot").innerHTML=rows.length?`<tr><td>รวม</td><td>${num(T.q)}</td><td>${baht(T.rev)}</td><td>${baht(T.cost)}</td><td>${baht(T.rev-T.cost)}</td></tr>`:"";
@@ -569,7 +606,7 @@ function renderChart(Pd){
   if(curRange==="w"||curRange==="m"){g="d";for(let d=new Date(Pd.s);d<=Pd.e;d.setDate(d.getDate()+1))keys.push(dkey(d));lab=k=>+k.slice(8);$("#chart-title").textContent="ยอดขายและกำไรรายวัน"}
   else if(curRange==="y"){g="m";for(let i=1;i<=12;i++)keys.push(Pd.sk.slice(0,4)+"-"+pad(i));lab=k=>MTH[+k.slice(5)-1];$("#chart-title").textContent="ยอดขายและกำไรรายเดือน"}
   else{g="y";const ys=Object.keys(R.byDay).map(k=>+k.slice(0,4));const y1=kd(today()).getFullYear(),y0=ys.length?Math.min(...ys):y1;for(let y=y0;y<=y1;y++)keys.push(String(y));lab=k=>+k+543;$("#chart-title").textContent="ยอดขายและกำไรรายปี"}
-  const ag=aggregate(R.byDay,g);const vals=keys.map(k=>{const x=ag[k]||{rev:0,cost:0,waste:0};return {k,rev:x.rev,p:x.rev-x.cost-x.waste}});
+  const ag=aggregate(R.byDay,g);const vals=keys.map(k=>{const x=ag[k]||{rev:0,cost:0,waste:0,exp:0};return {k,rev:x.rev,p:x.rev-x.cost-x.waste-(x.exp||0)}});
   const W=360,H=170,L=34,B=20,T=8,mx=Math.max(1,...vals.map(v=>v.rev));const nice=Math.pow(10,Math.floor(Math.log10(mx)));const top=Math.ceil(mx/nice)*nice;
   const bw=(W-L-8)/vals.length,y=v=>T+(H-T-B)*(1-Math.max(0,v)/top);
   let gr="";for(let i=0;i<=4;i++){const v=top*i/4;gr+=`<line x1="${L}" x2="${W-4}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L-6}" y="${y(v)+3}" text-anchor="end">${v>=1000?num(v/1000)+"k":num(v)}</text>`}
@@ -580,10 +617,10 @@ function renderChart(Pd){
 }
 function renderGranTable(){
   const g=curGran;$("#g-head").textContent={d:"วันที่",w:"สัปดาห์",m:"เดือน",y:"ปี"}[g];
-  const ag=aggregate(R.byDay,g);const ks=Object.keys(ag).sort().reverse().slice(0,g==="d"?60:g==="w"?26:24);const T={q:0,rev:0,cost:0,waste:0};
-  $("#gbody").innerHTML=ks.map(k=>{const x=ag[k],p=x.rev-x.cost-x.waste;T.q+=x.q;T.rev+=x.rev;T.cost+=x.cost;T.waste+=x.waste;
-    return `<tr><td>${bucketLabel(k,g)}</td><td>${num(x.q)}</td><td>${baht(x.rev)}</td><td>${baht(x.cost)}</td><td>${baht(x.waste)}</td><td class="${p<0?"neg":""}"><b>${baht(p)}</b></td></tr>`}).join("")||`<tr><td colspan="6" class="empty">ยังไม่มีข้อมูลการขาย</td></tr>`;
-  $("#gfoot").innerHTML=ks.length?`<tr><td>รวม ${ks.length} ${{d:"วัน",w:"สัปดาห์",m:"เดือน",y:"ปี"}[g]}</td><td>${num(T.q)}</td><td>${baht(T.rev)}</td><td>${baht(T.cost)}</td><td>${baht(T.waste)}</td><td>${baht(T.rev-T.cost-T.waste)}</td></tr>`:"";
+  const ag=aggregate(R.byDay,g);const ks=Object.keys(ag).sort().reverse().slice(0,g==="d"?60:g==="w"?26:24);const T={q:0,rev:0,cost:0,waste:0,exp:0};
+  $("#gbody").innerHTML=ks.map(k=>{const x=ag[k],p=x.rev-x.cost-x.waste-x.exp;T.q+=x.q;T.rev+=x.rev;T.cost+=x.cost;T.waste+=x.waste;T.exp+=x.exp;
+    return `<tr><td>${bucketLabel(k,g)}</td><td>${num(x.q)}</td><td>${baht(x.rev)}</td><td>${baht(x.cost)}</td><td>${baht(x.waste)}</td><td>${baht(x.exp)}</td><td class="${p<0?"neg":""}"><b>${baht(p)}</b></td></tr>`}).join("")||`<tr><td colspan="7" class="empty">ยังไม่มีข้อมูลการขาย</td></tr>`;
+  $("#gfoot").innerHTML=ks.length?`<tr><td>รวม ${ks.length} ${{d:"วัน",w:"สัปดาห์",m:"เดือน",y:"ปี"}[g]}</td><td>${num(T.q)}</td><td>${baht(T.rev)}</td><td>${baht(T.cost)}</td><td>${baht(T.waste)}</td><td>${baht(T.exp)}</td><td>${baht(T.rev-T.cost-T.waste-T.exp)}</td></tr>`:"";
 }
 
 /* ---------- สินค้า ---------- */
@@ -627,21 +664,45 @@ document.addEventListener("click",e=>{
   if(d.add){addToCart(d.add,1);return} if(d.inc){addToCart(d.inc,1);return} if(d.dec){addToCart(d.dec,-1);return}
   if(t.id==="cart-clear"){S.cart={};renderCart();renderTiles();return}
   if(t.id==="cart-ok"){checkout();return}
-  if(d.void||d.delbill){t.parentElement.innerHTML=`<span class="small">แน่ใจ?</span><button class="btn danger mini" type="button" data-yes="${esc(d.void?"v:"+d.void:"b:"+d.delbill)}">${d.void?"ยกเลิกรายการ":"ลบบิล"}</button><button class="btn ghost mini" type="button" data-no="1">ไม่</button>`;return}
+  if(d.void||d.delbill||d.xvoid){t.parentElement.innerHTML=`<span class="small">แน่ใจ?</span><button class="btn danger mini" type="button" data-yes="${esc(d.void?"v:"+d.void:d.xvoid?"x:"+d.xvoid:"b:"+d.delbill)}">${d.delbill?"ลบบิล":"ยกเลิกรายการ"}</button><button class="btn ghost mini" type="button" data-no="1">ไม่</button>`;return}
   if(d.no){renderAll();return}
-  if(d.yes){const k=d.yes[0],v=d.yes.slice(2);if(k==="v")act("voidTx",[v],"ยกเลิกรายการแล้ว สต็อกคืนแล้ว",t);else act("deleteBill",[v],"ลบบิลแล้ว",t)}
+  if(d.yes){const k=d.yes[0],v=d.yes.slice(2);if(k==="v")act("voidTx",[v],"ยกเลิกรายการแล้ว สต็อกคืนแล้ว",t);else if(k==="x")act("voidExpense",[v],"ยกเลิกค่าใช้จ่ายแล้ว",t);else act("deleteBill",[v],"ลบบิลแล้ว",t)}
 });
 
+/* ---------- ค่าใช้จ่าย ---------- */
+let xCat=null,pressT=null,pressed=false;
+function renderExpense(){
+  const cats=S.expCats||[];
+  $("#x-cats").innerHTML=cats.map(c=>`<button type="button" class="xbtn" data-xcat="${esc(c.name)}" aria-pressed="${c.name===xCat}"><b>${esc(c.name)}</b><span>${c.last!=null?baht(c.last,c.last%1!==0):"แตะเพื่อใส่ยอด"}</span></button>`).join("")||`<div class="empty">ยังไม่มีหมวด เพิ่มได้ด้านล่าง</div>`;
+  const list=S.todayExp||[];$("#x-total").textContent=baht((S.todaySum||{}).exp||0,((S.todaySum||{}).exp||0)%1!==0);
+  $("#x-list").innerHTML=list.length?list.map(x=>`<div class="li ${x.void?"void":""}"><div class="meta"><b>${esc(x.time)} · ${esc(x.cat)} · ${baht(x.amount,x.amount%1!==0)}</b>${x.note?`<span>${esc(x.note)}</span>`:""}</div>
+    <div class="right">${x.void?'<span class="small muted">ยกเลิกแล้ว</span>':`<span class="confirm"><button class="btn ghost mini" type="button" data-xvoid="${esc(x.id)}">ยกเลิก</button></span>`}</div></div>`).join(""):`<div class="empty">ยังไม่มีค่าใช้จ่ายวันนี้</div>`;
+}
+function openX(name){xCat=name;const c=(S.expCats||[]).find(x=>x.name===name);$("#x-form").hidden=false;$("#x-cat").textContent=name;
+  $("#x-amt").value=c&&c.last!=null?c.last:"";$("#x-note").value="";renderExpense();$("#x-amt").focus();$("#x-amt").select()}
+$("#x-cats").addEventListener("pointerdown",e=>{const b=e.target.closest("[data-xcat]");if(!b)return;pressed=false;
+  pressT=setTimeout(()=>{pressed=true;const n=b.dataset.xcat;b.innerHTML=`<b>ซ่อน “${esc(n)}”?</b><span><u data-xhide="${esc(n)}">ซ่อน</u> · <u>ไม่</u></span>`},800)});
+["pointerup","pointerleave","pointercancel"].forEach(ev=>$("#x-cats").addEventListener(ev,()=>clearTimeout(pressT)));
+$("#x-cats").addEventListener("click",e=>{const h=e.target.closest("[data-xhide]");if(h){act("hideExpCat",[h.dataset.xhide],"ซ่อนหมวดแล้ว");return}
+  const b=e.target.closest("[data-xcat]");if(!b)return;if(pressed){if(!e.target.closest("u"))return;pressed=false;renderExpense();return}openX(b.dataset.xcat)});
+$("#x-cancel").addEventListener("click",()=>{xCat=null;$("#x-form").hidden=true;renderExpense()});
+async function saveX(){const a=+$("#x-amt").value;if(!xCat)return;if(!(a>0)){toast("ใส่ยอดเงินมากกว่า 0",true);return}
+  if(await act("addExpense",[{cat:xCat,amount:a,note:$("#x-note").value.trim()}],"บันทึก "+xCat+" "+baht(a,a%1!==0)+" แล้ว",$("#x-save"))){xCat=null;$("#x-form").hidden=true;renderExpense()}}
+$("#x-save").addEventListener("click",saveX);
+$("#x-amt").addEventListener("keydown",e=>{if(e.key==="Enter")saveX()});
+$("#xc-save").addEventListener("click",async()=>{const n=$("#xc-name").value.trim();if(!n){toast("ใส่ชื่อหมวด",true);return}
+  if(await act("addExpCat",[{name:n,price:$("#xc-price").value}],"เพิ่มหมวด "+n+" แล้ว",$("#xc-save"))){$("#xc-name").value="";$("#xc-price").value=""}});
+
 /* ---------- แท็บ ---------- */
-const VIEWS=["sell","receive","stock","report","products"];let cur="sell";
+const VIEWS=["sell","receive","stock","report","expense","products"];let cur="sell";
 function go(v){cur=v;VIEWS.forEach(x=>$("#v-"+x).hidden=x!==v);
   document.querySelectorAll("#tabs button").forEach(b=>b.dataset.v===v?b.setAttribute("aria-current","page"):b.removeAttribute("aria-current"));
   window.scrollTo(0,0);if(v==="report")loadReport()}
 
 /* ---------- render ---------- */
-function renderHeader(){const s=S.todaySum||{rev:0,cost:0,waste:0};$("#hs-rev").textContent=baht(s.rev);$("#hs-cost").textContent=baht(s.cost);$("#hs-profit").textContent=baht(s.rev-s.cost-s.waste);
+function renderHeader(){const s=S.todaySum||{rev:0,cost:0,waste:0};$("#hs-rev").textContent=baht(s.rev);$("#hs-cost").textContent=baht(s.cost+(s.exp||0)+s.waste,(s.cost+(s.exp||0)+s.waste)%1!==0);$("#hs-profit").textContent=baht(s.rev-s.cost-s.waste-(s.exp||0),(s.rev-s.cost-s.waste-(s.exp||0))%1!==0);
   $("#hdate").textContent=kd(today()).toLocaleDateString("th-TH",{weekday:"short",day:"numeric",month:"short"})}
-function renderAll(){renderHeader();renderTiles();renderCart();renderToday();renderBills();renderStock();
+function renderAll(){renderHeader();renderExpense();renderTiles();renderCart();renderToday();renderBills();renderStock();
   const ae=document.activeElement;if(!(ae&&ae.closest&&ae.closest("#plist")))renderProducts();if(!(ae&&ae.closest&&ae.closest("#glist")))renderGroups();
   document.querySelectorAll('#b-lines select[data-k="pid"]').forEach(s=>{s.innerHTML=prodOptions(bLines[s.dataset.bl]?.pid,true)});
   if(cur==="report")loadReport()}
