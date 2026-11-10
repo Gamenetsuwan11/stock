@@ -66,6 +66,14 @@ h2{font-size:16px;margin:4px 0 0;font-weight:700}
 .tile .tmain{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;gap:2px;padding:10px 12px;flex:1;min-height:76px;border-radius:var(--r)}
 .tile .tmain:focus-visible{outline:2px solid var(--accent)}
 .tile .tmain .inc{position:static;align-self:flex-start;margin-bottom:2px}
+.tile .tinfo{display:flex;flex-direction:column;gap:2px;padding:10px 12px 8px}
+.tile .tbtns{display:flex;border-top:1px solid var(--line)}
+.tile .tb{flex:1;border:0;background:var(--surface);cursor:pointer;padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:0;line-height:1.25;color:var(--fg)}
+.tile .tb span{font-size:12px;color:var(--muted)}.tile .tb b{font-size:15px}
+.tile .tb:first-child{border-radius:0 0 0 var(--r)}.tile .tb:last-child{border-radius:0 0 var(--r) 0}
+.tile .tb.pk{border-left:1px solid var(--line);background:var(--accent-soft);color:var(--accent)}.tile .tb.pk span{color:var(--accent)}
+.tile .tb:active{filter:brightness(.92)}
+.tile .tinfo .inc{position:static;align-self:flex-start;margin-bottom:2px}
 .tile .tpack{border:0;border-top:1px dashed var(--line);background:var(--sunk);color:var(--accent);font-weight:600;font-size:12.5px;padding:7px 8px;cursor:pointer;border-radius:0 0 var(--r) var(--r)}
 .tile b{font-size:14.5px;font-weight:600;line-height:1.3}
 .tile .row{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);margin-top:auto}
@@ -151,7 +159,7 @@ td.neg{color:var(--bad)}
 .line3>.f:first-child{grid-column:1/-1}
 .qu{display:flex;gap:4px}.qu input{flex:1 1 0;min-width:0}.qu select{flex:0 0 auto;width:auto;padding-inline:6px}
 .xgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px}
-.xbtn{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 8px;cursor:pointer;display:flex;flex-direction:column;gap:2px;align-items:center;min-height:64px;justify-content:center;user-select:none;-webkit-user-select:none}
+.xbtn{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 8px;cursor:pointer;display:flex;flex-direction:column;gap:2px;align-items:center;min-height:52px;justify-content:center;user-select:none;-webkit-user-select:none}
 .xbtn b{font-size:14px;font-weight:600}.xbtn span{font-size:12px;color:var(--muted)}
 .xbtn[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
 .xform{display:flex;flex-direction:column;gap:10px;border-top:1px dashed var(--line);padding-top:12px}
@@ -187,7 +195,7 @@ td.neg{color:var(--bad)}
       <button type="button" data-mode="retail" aria-pressed="true">ลูกค้าทั่วไป</button>
       <button type="button" data-mode="ws" aria-pressed="false">ขายส่ง (แพ็ค)</button>
     </div>
-    <p class="small muted" id="modehint" style="margin:0;text-align:center">ลูกค้าทั่วไป: แตะสินค้าหรือสแกน = เพิ่ม 1 ลูก · กด “+แพ็ค” เพื่อขายทั้งแพ็ค</p>
+    <p class="small muted" id="modehint" style="margin:0;text-align:center">ลูกค้าทั่วไป: กด “+1 ลูก” หรือ “+1 แพ็ค” · สแกน QR = เพิ่ม 1 ลูก</p>
     <button class="btn primary scan" type="button" id="scanbtn">
       <svg viewBox="0 0 24 24"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M7 12h10"/></svg>
       สแกน QR สินค้า
@@ -304,7 +312,7 @@ td.neg{color:var(--bad)}
   <section class="view" id="v-expense" hidden>
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:baseline"><h2 style="margin:0">ค่าใช้จ่ายวันนี้</h2><b id="x-total" style="font-size:20px">฿0</b></div>
-      <p class="small muted" style="margin:0">แตะหมวด ใส่ยอดเงิน แล้วกดบันทึก ระบบจำยอดล่าสุดของแต่ละหมวดไว้ให้</p>
+      <p class="small muted" style="margin:0">แตะหมวด ใส่ยอดเงิน แล้วกดบันทึก</p>
       <div class="xgrid" id="x-cats"></div>
       <div id="x-form" class="xform" hidden>
         <b id="x-cat"></b>
@@ -435,7 +443,7 @@ S.cartPk={};S.ws=false;
 /* ราคาต่อแพ็ค (ต้องตรงกับ packPrice_ ใน Code.gs) */
 function packPrice(p,ws){const g=G(p),k=packOf(p);if(ws&&g&&g.wsPrice)return g.wsPrice;if(g&&g.packPrice)return g.packPrice;return (+p.price||0)*k}
 function setMode(ws){S.ws=ws;document.querySelectorAll("#mode button").forEach(b=>b.setAttribute("aria-pressed",String((b.dataset.mode==="ws")===ws)));
-  $("#modehint").textContent=ws?"ขายส่ง: แตะสินค้าหรือสแกน = เพิ่ม 1 แพ็ค ราคาส่ง":"ลูกค้าทั่วไป: แตะสินค้าหรือสแกน = เพิ่ม 1 ลูก · กด “+แพ็ค” เพื่อขายทั้งแพ็ค";renderTiles();renderCart()}
+  $("#modehint").textContent=ws?"ขายส่ง: แตะสินค้าหรือสแกน = เพิ่ม 1 แพ็ค ราคาส่ง":"ลูกค้าทั่วไป: กด “+1 ลูก” หรือ “+1 แพ็ค” · สแกน QR = เพิ่ม 1 ลูก";renderTiles();renderCart()}
 function renderTiles(){
   const el=$("#tiles");const ps=plist();
   if(!ps.length){el.innerHTML=`<div class="empty" style="grid-column:1/-1">ยังไม่มีสินค้า เพิ่มได้ที่แท็บ “สินค้า”</div>`;return}
@@ -443,9 +451,12 @@ function renderTiles(){
     const k=packOf(p),pp=packPrice(p,S.ws);
     const badge=[inC?inC+" ลูก":"",inP?inP+" แพ็ค":""].filter(Boolean).join(" + ");
     const price=S.ws?(G(p)&&G(p).wsPrice?`ส่ง ${baht(pp)}/แพ็ค`:pp?`ไม่มีราคาส่ง · ${baht(pp)}/แพ็ค`:"ยังไม่ตั้งราคา"):(p.price?baht(p.price)+(promoTxt(p)?" · "+promoTxt(p):""):"ยังไม่ตั้งราคา");
-    return `<div class="tile ${cls}"><button class="tmain" data-add="${esc(p.id)}" type="button">${badge?`<span class="inc">${badge}</span>`:""}<b>${esc(p.name)}</b>
-    <div class="row"><span>${price}</span><span class="q">เหลือ ${num(q)}</span></div></button>
-    ${!S.ws&&k>1&&pp?`<button class="tpack" data-addpk="${esc(p.id)}" type="button">+แพ็ค (${k} ลูก) ${baht(pp)}</button>`:""}</div>`}).join("");
+    if(S.ws)return `<div class="tile ${cls}"><button class="tmain" data-add="${esc(p.id)}" type="button">${badge?`<span class="inc">${badge}</span>`:""}<b>${esc(p.name)}</b>
+    <div class="row"><span>${price}</span><span class="q">เหลือ ${num(q)}</span></div></button></div>`;
+    return `<div class="tile ${cls}"><div class="tinfo">${badge?`<span class="inc">${badge}</span>`:""}<b>${esc(p.name)}</b>
+    <div class="row"><span>${promoTxt(p)?"โปร "+promoTxt(p):""}</span><span class="q">เหลือ ${num(q)}</span></div></div>
+    <div class="tbtns"><button class="tb" data-add="${esc(p.id)}" type="button"><span>+1 ลูก</span><b>${p.price?baht(p.price):"–"}</b></button>
+    ${k>1&&pp?`<button class="tb pk" data-addpk="${esc(p.id)}" type="button"><span>+1 แพ็ค (${k})</span><b>${baht(pp)}</b></button>`:""}</div></div>`}).join("");
 }
 function cartLines(){const L=[];
   Object.keys(S.cart).forEach(id=>{if(S.cart[id]>0)L.push({pid:id,qty:S.cart[id],unit:"pc"})});
@@ -813,7 +824,7 @@ document.addEventListener("click",e=>{
 let xCat=null,pressT=null,pressed=false;
 function renderExpense(){
   const cats=S.expCats||[];
-  $("#x-cats").innerHTML=cats.map(c=>`<button type="button" class="xbtn" data-xcat="${esc(c.name)}" aria-pressed="${c.name===xCat}"><b>${esc(c.name)}</b><span>${c.last!=null?baht(c.last,c.last%1!==0):"แตะเพื่อใส่ยอด"}</span></button>`).join("")||`<div class="empty">ยังไม่มีหมวด เพิ่มได้ด้านล่าง</div>`;
+  $("#x-cats").innerHTML=cats.map(c=>`<button type="button" class="xbtn" data-xcat="${esc(c.name)}" aria-pressed="${c.name===xCat}"><b>${esc(c.name)}</b></button>`).join("")||`<div class="empty">ยังไม่มีหมวด เพิ่มได้ด้านล่าง</div>`;
   const list=S.todayExp||[];$("#x-total").textContent=baht((S.todaySum||{}).exp||0,((S.todaySum||{}).exp||0)%1!==0);
   $("#x-list").innerHTML=list.length?list.map(x=>`<div class="li ${x.void?"void":""}"><div class="meta"><b>${esc(x.time)} · ${esc(x.cat)} · ${baht(x.amount,x.amount%1!==0)}</b>${x.note?`<span>${esc(x.note)}</span>`:""}</div>
     <div class="right">${x.void?'<span class="small muted">ยกเลิกแล้ว</span>':`<span class="confirm"><button class="btn ghost mini" type="button" data-xvoid="${esc(x.id)}">ยกเลิก</button></span>`}</div></div>`).join(""):`<div class="empty">ยังไม่มีค่าใช้จ่ายวันนี้</div>`;
