@@ -62,6 +62,11 @@ h2{font-size:16px;margin:4px 0 0;font-weight:700}
 .scan svg{width:28px;height:28px;stroke:currentColor;fill:none;stroke-width:2}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
 .tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:2px;min-height:76px;position:relative}
+.tile{padding:0;gap:0;cursor:default}
+.tile .tmain{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;gap:2px;padding:10px 12px;flex:1;min-height:76px;border-radius:var(--r)}
+.tile .tmain:focus-visible{outline:2px solid var(--accent)}
+.tile .tmain .inc{position:static;align-self:flex-start;margin-bottom:2px}
+.tile .tpack{border:0;border-top:1px dashed var(--line);background:var(--sunk);color:var(--accent);font-weight:600;font-size:12.5px;padding:7px 8px;cursor:pointer;border-radius:0 0 var(--r) var(--r)}
 .tile b{font-size:14.5px;font-weight:600;line-height:1.3}
 .tile .row{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);margin-top:auto}
 .tile.low .row .q{color:var(--warn);font-weight:600}
@@ -72,6 +77,12 @@ h2{font-size:16px;margin:4px 0 0;font-weight:700}
 .cart-line:last-child{border-bottom:0}
 .step{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .step button{width:38px;height:38px;border:0;background:var(--sunk);font-size:18px;cursor:pointer}
+.step .qin{width:52px;height:38px;border:0;border-inline:1px solid var(--line);background:var(--surface);text-align:center;font-weight:700;font-size:16px;cursor:pointer;text-decoration:underline dotted;text-underline-offset:4px}
+.kpad{position:fixed;inset:0;z-index:45;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center}
+.kbox{background:var(--surface);width:100%;max-width:420px;border-radius:18px 18px 0 0;padding:14px max(16px,env(safe-area-inset-left,0px)) calc(14px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px}
+.kbox .kv{font-size:40px;font-weight:700;text-align:center;padding:4px 0;border-bottom:2px solid var(--accent)}.kbox .kv.ph{color:var(--muted)}
+.kgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.kgrid button{height:56px;border-radius:12px;border:1px solid var(--line);background:var(--sunk);font-size:24px;font-weight:600;cursor:pointer}
+.kgrid .ok{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);font-size:18px}
 .step span{min-width:34px;text-align:center;font-weight:600}
 .total{display:flex;justify-content:space-between;align-items:baseline;font-size:15px}
 .total b{font-size:22px}
@@ -144,12 +155,16 @@ td.neg{color:var(--bad)}
 .xbtn b{font-size:14px;font-weight:600}.xbtn span{font-size:12px;color:var(--muted)}
 .xbtn[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
 .xform{display:flex;flex-direction:column;gap:10px;border-top:1px dashed var(--line);padding-top:12px}
+.hedit{border-color:var(--accent);border-width:2px}
+.hline{display:grid;grid-template-columns:1fr 1fr auto;gap:6px;align-items:end;padding-bottom:8px;border-bottom:1px dashed var(--line)}
+.hline>.f:first-child{grid-column:1/-1}
 .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%}
 </style>
 </head>
 <body>
 <header><div class="in">
   <h1>ร้านซาลาเปาขนมจีบ By Game <small id="hdate"></small></h1>
+  <div style="font-size:10.5px;opacity:.7;margin-top:-4px">เวอร์ชัน 10 พ.ย. (แป้นตัวเลข)</div>
   <div class="hstats">
     <div><span>ขายวันนี้</span><b id="hs-rev">–</b></div>
     <div><span>ต้นทุน+ค่าใช้จ่าย</span><b id="hs-cost">–</b></div>
@@ -168,6 +183,11 @@ td.neg{color:var(--bad)}
 
   <!-- ขาย -->
   <section class="view" id="v-sell">
+    <div class="seg" id="mode" style="margin-bottom:-4px">
+      <button type="button" data-mode="retail" aria-pressed="true">ลูกค้าทั่วไป</button>
+      <button type="button" data-mode="ws" aria-pressed="false">ขายส่ง (แพ็ค)</button>
+    </div>
+    <p class="small muted" id="modehint" style="margin:0;text-align:center">ลูกค้าทั่วไป: แตะสินค้าหรือสแกน = เพิ่ม 1 ลูก · กด “+แพ็ค” เพื่อขายทั้งแพ็ค</p>
     <button class="btn primary scan" type="button" id="scanbtn">
       <svg viewBox="0 0 24 24"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M7 12h10"/></svg>
       สแกน QR สินค้า
@@ -187,6 +207,14 @@ td.neg{color:var(--bad)}
 
     <h2>รายการขายวันนี้</h2>
     <div class="card"><div class="list" id="todaylist"></div></div>
+
+    <h2>ดู / แก้ไขการขายย้อนหลัง</h2>
+    <div class="card">
+      <div style="display:flex;gap:8px;align-items:end"><div class="f" style="flex:1"><label for="h-date">วันที่ขาย</label><input type="date" id="h-date"></div><button class="btn" id="h-load" type="button">ดูรายการ</button></div>
+      <p class="small muted" style="margin:0">แก้จำนวน หน่วย ยอดเงิน หรือเปลี่ยนเป็นขายส่งได้ ระบบใช้ทุนต่อลูกเดิมของบิลนั้น ต้นทุนจึงไม่เพี้ยน</p>
+      <div class="list" id="h-list"></div>
+    </div>
+    <div class="card hedit" id="h-edit" hidden></div>
   </section>
 
   <!-- รับเข้า -->
@@ -301,6 +329,20 @@ td.neg{color:var(--bad)}
 
   <section class="view" id="v-products" hidden>
     <div class="card"><h2 style="margin:0">แพ็คและโปรโมชัน</h2><p class="small muted" style="margin:0">จำนวนลูกต่อแพ็คใช้แปลงบิลรับเข้า โปรคิดแบบคละไส้ในกลุ่มเดียวกัน</p><div class="list" id="glist"></div></div>
+    <div class="card">
+      <h2 style="margin:0">เพิ่มกลุ่มสินค้า / โปรโมชันใหม่</h2>
+      <p class="small muted" style="margin:0">เช่น สินค้ากลุ่มใหม่ หรือโปร “5 ลูก 20 บาท” เพิ่มแล้วไปเลือกกลุ่มให้สินค้าตอนเพิ่มสินค้าด้านล่าง</p>
+      <div class="row2">
+        <div class="f"><label for="ng-name">ชื่อกลุ่ม</label><input id="ng-name" placeholder="เช่น ซาลาเปาไส้หวาน"></div>
+        <div class="f"><label for="ng-pack">ลูกต่อแพ็ค</label><input id="ng-pack" type="number" inputmode="numeric" min="1" value="1"></div>
+        <div class="f"><label for="ng-pq">โปร: ซื้อครบ (ลูก)</label><input id="ng-pq" type="number" inputmode="numeric" min="0" placeholder="ไม่มีโปร"></div>
+        <div class="f"><label for="ng-pp">โปร: ราคา (บาท)</label><input id="ng-pp" type="number" inputmode="decimal" min="0" placeholder="–"></div>
+        <div class="f"><label for="ng-kp">ราคาแพ็ค (ทั่วไป)</label><input id="ng-kp" type="number" inputmode="decimal" min="0" placeholder="ไม่ขายแพ็ค"></div>
+        <div class="f"><label for="ng-wp">ราคาส่ง/แพ็ค</label><input id="ng-wp" type="number" inputmode="decimal" min="0" placeholder="ไม่มีราคาส่ง"></div>
+      </div>
+      <div class="f"><label for="ng-keys">คำที่ใช้หาในบิล (คั่นด้วย ,)</label><input id="ng-keys" placeholder="ไม่ใส่ก็ได้ ใช้ชื่อกลุ่ม"></div>
+      <button class="btn primary" id="ng-save" type="button">เพิ่มกลุ่ม / โปรโมชัน</button>
+    </div>
     <div class="notice info small">ตั้งราคาขายต่อลูก และจำนวนที่จะให้เตือนว่าใกล้หมด ต้นทุนดึงจากบิลรับเข้าโดยอัตโนมัติ</div>
     <div class="card"><div class="list" id="plist"></div></div>
     <div class="card">
@@ -318,6 +360,15 @@ td.neg{color:var(--bad)}
     </div>
   </section>
 </div>
+<div class="kpad" id="kpad" hidden><div class="kbox" role="dialog" aria-label="ใส่จำนวน">
+  <div style="display:flex;justify-content:space-between;align-items:center"><b id="kp-title"></b><button class="btn ghost mini" type="button" data-k="x">ปิด</button></div>
+  <div class="kv ph" id="kp-val">0</div>
+  <div class="kgrid"><button type="button" data-k="1">1</button><button type="button" data-k="2">2</button><button type="button" data-k="3">3</button>
+  <button type="button" data-k="4">4</button><button type="button" data-k="5">5</button><button type="button" data-k="6">6</button>
+  <button type="button" data-k="7">7</button><button type="button" data-k="8">8</button><button type="button" data-k="9">9</button>
+  <button type="button" data-k="c">C</button><button type="button" data-k="0">0</button><button type="button" data-k="bs">⌫</button></div>
+  <div class="kgrid" style="grid-template-columns:1fr"><button type="button" class="ok" data-k="ok">ตกลง</button></div>
+</div></div>
 <nav class="tabs" id="tabs">
   <button type="button" data-v="sell"><svg viewBox="0 0 24 24"><path d="M4 7h16l-1.5 11a2 2 0 0 1-2 1.7H7.5a2 2 0 0 1-2-1.7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>ขาย</button>
   <button type="button" data-v="receive"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>รับเข้า</button>
@@ -379,43 +430,123 @@ function priceCart(lines){const byG={},out={};
 const plist=all=>S.products.filter(p=>all||p.active);
 function apply(st){Object.assign(S,st);$("#status").hidden=true;$("#pinbox").hidden=true;renderAll()}
 
-/* ---------- ขาย ---------- */
+/* ---------- ขาย (ปลีก / แพ็ค / ขายส่ง) ---------- */
+S.cartPk={};S.ws=false;
+/* ราคาต่อแพ็ค (ต้องตรงกับ packPrice_ ใน Code.gs) */
+function packPrice(p,ws){const g=G(p),k=packOf(p);if(ws&&g&&g.wsPrice)return g.wsPrice;if(g&&g.packPrice)return g.packPrice;return (+p.price||0)*k}
+function setMode(ws){S.ws=ws;document.querySelectorAll("#mode button").forEach(b=>b.setAttribute("aria-pressed",String((b.dataset.mode==="ws")===ws)));
+  $("#modehint").textContent=ws?"ขายส่ง: แตะสินค้าหรือสแกน = เพิ่ม 1 แพ็ค ราคาส่ง":"ลูกค้าทั่วไป: แตะสินค้าหรือสแกน = เพิ่ม 1 ลูก · กด “+แพ็ค” เพื่อขายทั้งแพ็ค";renderTiles();renderCart()}
 function renderTiles(){
   const el=$("#tiles");const ps=plist();
   if(!ps.length){el.innerHTML=`<div class="empty" style="grid-column:1/-1">ยังไม่มีสินค้า เพิ่มได้ที่แท็บ “สินค้า”</div>`;return}
-  el.innerHTML=ps.map(p=>{const q=S.stock[p.id]||0,inC=S.cart[p.id]||0;const cls=q<=0?"out":q<=p.min?"low":"";
-    return `<button class="tile ${cls}" data-add="${esc(p.id)}" type="button">${inC?`<span class="inc">${inC}</span>`:""}<b>${esc(p.name)}</b>
-    <div class="row"><span>${p.price?baht(p.price)+(promoTxt(p)?" · "+promoTxt(p):""):"ยังไม่ตั้งราคา"}</span><span class="q">เหลือ ${num(q)}</span></div></button>`}).join("");
+  el.innerHTML=ps.map(p=>{const q=S.stock[p.id]||0,inC=S.cart[p.id]||0,inP=S.cartPk[p.id]||0;const cls=q<=0?"out":q<=p.min?"low":"";
+    const k=packOf(p),pp=packPrice(p,S.ws);
+    const badge=[inC?inC+" ลูก":"",inP?inP+" แพ็ค":""].filter(Boolean).join(" + ");
+    const price=S.ws?(G(p)&&G(p).wsPrice?`ส่ง ${baht(pp)}/แพ็ค`:pp?`ไม่มีราคาส่ง · ${baht(pp)}/แพ็ค`:"ยังไม่ตั้งราคา"):(p.price?baht(p.price)+(promoTxt(p)?" · "+promoTxt(p):""):"ยังไม่ตั้งราคา");
+    return `<div class="tile ${cls}"><button class="tmain" data-add="${esc(p.id)}" type="button">${badge?`<span class="inc">${badge}</span>`:""}<b>${esc(p.name)}</b>
+    <div class="row"><span>${price}</span><span class="q">เหลือ ${num(q)}</span></div></button>
+    ${!S.ws&&k>1&&pp?`<button class="tpack" data-addpk="${esc(p.id)}" type="button">+แพ็ค (${k} ลูก) ${baht(pp)}</button>`:""}</div>`}).join("");
 }
+function cartLines(){const L=[];
+  Object.keys(S.cart).forEach(id=>{if(S.cart[id]>0)L.push({pid:id,qty:S.cart[id],unit:"pc"})});
+  Object.keys(S.cartPk).forEach(id=>{if(S.cartPk[id]>0)L.push({pid:id,qty:S.cartPk[id],unit:"pack"})});return L}
 function renderCart(){
-  const el=$("#cart");const ids=Object.keys(S.cart).filter(k=>S.cart[k]>0);
-  if(!ids.length){el.innerHTML=`<div class="empty" style="padding:6px">ตะกร้าว่าง สแกน QR หรือแตะสินค้าเพื่อเริ่มขาย</div>`;return}
-  let tot=0,full=0,over=false;
-  const priced=ids.every(id=>+P(id)?.price>0);const pr=priced?priceCart(ids.map(id=>({pid:id,qty:S.cart[id]}))):{};
-  const rows=ids.map(id=>{const p=P(id)||{name:"?"};const q=S.cart[id];const base=(+p.price||0)*q;const sub=priced?pr[id]:base;tot+=sub;full+=base;if(q>(S.stock[id]||0))over=true;
-    return `<div class="cart-line"><div class="meta"><b>${esc(p.name)}</b><div class="small muted">${baht(p.price)} × ${q} = ${baht(base)}</div></div>
-    <div class="step"><button type="button" data-dec="${esc(id)}" aria-label="ลด">−</button><span>${q}</span><button type="button" data-inc="${esc(id)}" aria-label="เพิ่ม">+</button></div><span></span></div>`}).join("");
-  el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">ตะกร้า</h2><button class="btn ghost mini" type="button" id="cart-clear">ล้าง</button></div>
+  const el=$("#cart");const L=cartLines();
+  if(!L.length){el.innerHTML=`<div class="empty" style="padding:6px">ตะกร้าว่าง สแกน QR หรือแตะสินค้าเพื่อเริ่มขาย</div>`;return}
+  const pcs=L.filter(l=>l.unit==="pc");let tot=0,full=0,over=false;const need={};
+  const priced=pcs.every(l=>+P(l.pid)?.price>0);const pr=priced&&pcs.length?priceCart(pcs.map(l=>({pid:l.pid,qty:l.qty}))):{};
+  const rows=L.map(l=>{const p=P(l.pid)||{name:"?"};let line,sub,base;
+    if(l.unit==="pc"){base=(+p.price||0)*l.qty;sub=priced?pr[l.pid]:base;need[l.pid]=(need[l.pid]||0)+l.qty;line=`${baht(p.price)} × ${l.qty} ลูก = ${baht(base)}`}
+    else{const pp=packPrice(p,S.ws);base=sub=pp*l.qty;need[l.pid]=(need[l.pid]||0)+l.qty*packOf(p);line=`${S.ws&&G(p)&&G(p).wsPrice?"ราคาส่ง ":""}${baht(pp)} × ${l.qty} แพ็ค (${num(l.qty*packOf(p))} ลูก) = ${baht(base)}`}
+    tot+=sub;full+=base;const key=(l.unit==="pack"?"pk:":"pc:")+l.pid;
+    return `<div class="cart-line"><div class="meta"><b>${esc(p.name)}${l.unit==="pack"?' <span class="pill ok">แพ็ค</span>':""}</b><div class="small muted">${line}</div></div>
+    <div class="step"><button type="button" data-dec="${esc(key)}" aria-label="ลด">−</button><button type="button" class="qin" data-qkey="${esc(key)}" aria-label="พิมพ์จำนวน${l.unit==="pack"?"แพ็ค":"ลูก"} ${esc(p.name)}">${l.qty}</button><button type="button" data-inc="${esc(key)}" aria-label="เพิ่ม">+</button></div><span></span></div>`}).join("");
+  for(const id in need)if(need[id]>(S.stock[id]||0))over=true;
+  el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">ตะกร้า${S.ws?' <span class="pill warn">ขายส่ง</span>':""}</h2><button class="btn ghost mini" type="button" id="cart-clear">ล้าง</button></div>
   <div>${rows}</div>${over?`<div class="notice small">บางรายการขายเกินสต็อกในระบบ ตรวจสอบว่าบันทึกบิลรับเข้าครบหรือยัง</div>`:""}
-  ${tot<full?`<div class="total small"><span>ส่วนลดโปร${(()=>{const t=[...new Set(ids.map(id=>promoTxt(P(id))).filter(Boolean))];return t.length?" ("+t.join(", ")+")":""})()}</span><span>−${baht(full-tot,(full-tot)%1!==0)}</span></div>`:""}
-  <div class="total"><span>รวมทั้งหมด</span><b>${baht(tot)}</b></div>
-  <button class="btn primary" type="button" id="cart-ok" style="font-size:17px">ยืนยันขาย ${baht(tot)}</button>`;
+  ${tot<full?`<div class="total small"><span>ส่วนลดโปร${(()=>{const t=[...new Set(pcs.map(l=>promoTxt(P(l.pid))).filter(Boolean))];return t.length?" ("+t.join(", ")+")":""})()}</span><span>−${baht(full-tot,(full-tot)%1!==0)}</span></div>`:""}
+  <div class="total"><span>รวมทั้งหมด</span><b>${baht(tot,tot%1!==0)}</b></div>
+  <button class="btn primary" type="button" id="cart-ok" style="font-size:17px">ยืนยัน${S.ws?"ขายส่ง":"ขาย"} ${baht(tot,tot%1!==0)}</button>`;
 }
-function addToCart(id,n){if(!P(id))return;S.cart[id]=Math.max(0,(S.cart[id]||0)+n);if(!S.cart[id])delete S.cart[id];renderCart();renderTiles()}
+function bump(obj,id,n){obj[id]=Math.max(0,(obj[id]||0)+n);if(!obj[id])delete obj[id]}
+/* เพิ่มจากการแตะ/สแกน: ขายส่ง = +1 แพ็ค, ทั่วไป = +1 ลูก */
+function addToCart(id,n){if(!P(id))return;if(S.ws&&packOf(P(id))>1)bump(S.cartPk,id,n);else bump(S.cart,id,n);renderCart();renderTiles()}
+function addPack(id,n){if(!P(id))return;bump(S.cartPk,id,n);renderCart();renderTiles()}
 async function checkout(){
-  const ids=Object.keys(S.cart);if(!ids.length)return;
-  const np=ids.find(id=>!(+P(id)?.price));if(np){toast("ตั้งราคาขาย “"+P(np).name+"” ก่อน ที่แท็บสินค้า",true);return}
-  const items=ids.map(id=>({pid:id,qty:S.cart[id]}));const keep=S.cart;S.cart={};
-  const ok=await act("sell",[items],"บันทึกการขายแล้ว",$("#cart-ok"));if(!ok){S.cart=keep;renderCart();renderTiles()}
+  const L=cartLines();if(!L.length)return;
+  const np=L.find(l=>l.unit==="pc"&&!(+P(l.pid)?.price));if(np){toast("ตั้งราคาขาย “"+P(np.pid).name+"” ก่อน ที่แท็บสินค้า",true);return}
+  const nk=L.find(l=>l.unit==="pack"&&!(packPrice(P(l.pid),S.ws)>0));if(nk){toast("ตั้งราคาแพ็คของกลุ่ม “"+P(nk.pid).group+"” ก่อน ที่แท็บสินค้า",true);return}
+  const keep=[S.cart,S.cartPk];S.cart={};S.cartPk={};
+  const ok=await act("sell",[L,{wholesale:S.ws}],S.ws?"บันทึกขายส่งแล้ว":"บันทึกการขายแล้ว",$("#cart-ok"));if(!ok){[S.cart,S.cartPk]=keep;renderCart();renderTiles()}
 }
 function renderToday(){
   const el=$("#todaylist");const list=S.todayTx||[];
   if(!list.length){el.innerHTML=`<div class="empty">ยังไม่มีการขายวันนี้</div>`;return}
-  el.innerHTML=list.map(t=>{const names=t.items.map(i=>esc(i.name)+" ×"+num(i.qty)).join(", ");
-    const label=t.type==="ขาย"?baht(t.amount):t.type==="ของเสีย"?'<span class="pill warn">ของเสีย</span>':t.type==="แก้ยอดสต็อก"?'<span class="pill ok">แก้ยอดสต็อก</span>':'<span class="pill warn">ปรับยอด</span>';
-    return `<div class="li ${t.void?"void":""}"><div class="meta"><b>${esc(t.time)} · ${label}</b><span>${names}${t.note?" — "+esc(t.note):""}</span></div>
-    <div class="right">${t.void?'<span class="small muted">ยกเลิกแล้ว</span>':`<span class="confirm"><button class="btn ghost mini" type="button" data-void="${esc(t.id)}">ยกเลิก</button></span>`}</div></div>`}).join("");
+  el.innerHTML=list.map(t=>{const names=t.items.map(i=>esc(i.name)+" ×"+(i.packs?num(i.packs)+" แพ็ค":num(i.qty))).join(", ");
+    const label=t.type==="ขาย"?baht(t.amount,t.amount%1!==0)+(t.ws?' <span class="pill warn">ขายส่ง</span>':""):t.type==="ของเสีย"?'<span class="pill warn">ของเสีย</span>':t.type==="แก้ยอดสต็อก"?'<span class="pill ok">แก้ยอดสต็อก</span>':'<span class="pill warn">ปรับยอด</span>';
+    const note=t.type==="ขาย"?"":t.note;
+    return `<div class="li ${t.void?"void":""}"><div class="meta"><b>${esc(t.time)} · ${label}</b><span>${names}${note?" — "+esc(note):""}</span></div>
+    <div class="right">${t.void?'<span class="small muted">ยกเลิกแล้ว</span>':`${t.type==="ขาย"?`<button class="btn mini" type="button" data-hedit="${esc(t.id)}">แก้ไข</button>`:""}<span class="confirm"><button class="btn ghost mini" type="button" data-void="${esc(t.id)}">ยกเลิก</button></span>`}</div></div>`}).join("");
 }
+/* แป้นตัวเลขในหน้า (แตะตัวเลขในตะกร้า) — ไม่พึ่งคีย์บอร์ดมือถือ */
+let kp={key:"",val:""};
+function openPad(key){const id=key.slice(3),o=key.startsWith("pk:")?S.cartPk:S.cart,p=P(id);kp={key,val:""};
+  $("#kp-title").textContent=(p?p.name:"")+(key.startsWith("pk:")?" (แพ็ค)":" (ลูก)");$("#kp-val").textContent=o[id]||0;$("#kp-val").classList.add("ph");$("#kpad").hidden=false}
+function closePad(){$("#kpad").hidden=true}
+$("#kpad").addEventListener("click",e=>{const b=e.target.closest("button");if(!b){if(e.target.id==="kpad")closePad();return}const k=b.dataset.k;
+  if(k==="x"){closePad();return}
+  if(k==="ok"){const n=Math.floor(+kp.val||0),id=kp.key.slice(3),o=kp.key.startsWith("pk:")?S.cartPk:S.cart;if(kp.val!==""){if(n>0)o[id]=n;else delete o[id]}closePad();renderCart();renderTiles();camSum&&camSum();return}
+  if(k==="bs")kp.val=kp.val.slice(0,-1);else if(k==="c")kp.val="";else if(kp.val.length<4)kp.val=(kp.val+k).replace(/^0+(?=\d)/,"");
+  $("#kp-val").textContent=kp.val===""?"0":kp.val;$("#kp-val").classList.toggle("ph",kp.val==="")});
+
+$("#mode").addEventListener("click",e=>{const b=e.target.closest("[data-mode]");if(b)setMode(b.dataset.mode==="ws")});
+
+/* ---------- ดู / แก้ไขการขายย้อนหลัง ---------- */
+let H={date:"",list:[]},E=null;
+async function loadDay(d,openId){H.date=d||$("#h-date").value||today();$("#h-date").value=H.date;$("#h-list").innerHTML=`<div class="empty">กำลังโหลด…</div>`;
+  try{H.list=await call("getDay",H.date);renderDay();if(openId)openEdit(openId)}catch(e){$("#h-list").innerHTML=`<div class="empty">${esc(errMsg(e))}</div>`}}
+function renderDay(){const L=H.list;
+  $("#h-list").innerHTML=L.length?L.map(t=>`<div class="li ${t.void?"void":""}"><div class="meta"><b>${esc(t.time)} · ${baht(t.total,t.total%1!==0)}${t.ws?' <span class="pill warn">ขายส่ง</span>':""}</b>
+    <span>${t.lines.map(l=>esc(l.name)+" ×"+num(l.qty)+(l.unit==="pack"?" แพ็ค":"")).join(", ")}</span></div>
+    <div class="right">${t.void?'<span class="small muted">ยกเลิกแล้ว</span>':`<button class="btn mini" type="button" data-hedit="${esc(t.id)}">แก้ไข</button>`}</div></div>`).join(""):`<div class="empty">ไม่มีการขายวันนี้</div>`}
+function openEdit(id){const t=H.list.find(x=>x.id===id);if(!t)return;
+  E={id:t.id,time:t.time,ws:t.ws,lines:t.lines.map(l=>({pid:l.pid,unit:l.unit,qty:l.qty,amount:l.amount,manual:true}))};renderEdit();$("#h-edit").scrollIntoView({behavior:"smooth",block:"start"})}
+function calcEdit(){const pcs=E.lines.filter(l=>l.unit==="pc"&&P(l.pid)&&+l.qty>0&&+P(l.pid).price>0);
+  const pr=pcs.length?priceCart(pcs.map(l=>({pid:l.pid,qty:+l.qty}))):{};
+  E.lines.forEach(l=>{if(l.manual||!P(l.pid)||!(+l.qty>0))return;l.amount=l.unit==="pack"?packPrice(P(l.pid),E.ws)*l.qty:(pr[l.pid]??(+P(l.pid).price||0)*l.qty)})}
+function renderEdit(){const el=$("#h-edit");if(!E){el.hidden=true;return}el.hidden=false;
+  const tot=E.lines.reduce((a,l)=>a+(+l.amount||0),0);
+  el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">แก้ไขบิล ${esc(thDate(H.date))} ${esc(E.time)}</h2><button class="btn ghost mini" type="button" id="he-close">ปิด</button></div>
+  <div class="seg" id="he-mode"><button type="button" data-hmode="retail" aria-pressed="${!E.ws}">ลูกค้าทั่วไป</button><button type="button" data-hmode="ws" aria-pressed="${E.ws}">ขายส่ง</button></div>
+  ${E.lines.map((l,i)=>`<div class="hline">
+    <div class="f"><label for="he-p-${i}">สินค้า</label><select id="he-p-${i}" data-he="${i}" data-k="pid">${prodOptions(l.pid,true)}</select></div>
+    <div class="f"><label for="he-q-${i}">จำนวน</label><div class="qu"><input id="he-q-${i}" type="number" inputmode="decimal" min="0" step="any" data-he="${i}" data-k="qty" value="${esc(l.qty)}"><select aria-label="หน่วย" data-he="${i}" data-k="unit"><option value="pc"${l.unit==="pc"?" selected":""}>ลูก</option><option value="pack"${l.unit==="pack"?" selected":""}>แพ็ค</option></select></div></div>
+    <div class="f"><label for="he-a-${i}">ยอดเงิน (บาท)</label><input id="he-a-${i}" type="number" inputmode="decimal" min="0" step="0.01" data-he="${i}" data-k="amount" value="${esc(Math.round((+l.amount||0)*100)/100)}"></div>
+    <button class="x" type="button" data-hex="${i}" aria-label="ลบรายการ" style="width:40px;height:44px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--bad);font-size:18px;cursor:pointer">×</button></div>`).join("")}
+  <button class="btn" type="button" id="he-add">+ เพิ่มรายการ</button>
+  <p class="small muted" style="margin:0">เปลี่ยนสินค้า จำนวน หน่วย หรือโหมดขาย ระบบคิดยอดเงินใหม่ให้ แก้ยอดเงินเองได้</p>
+  <div class="total"><span>รวมบิลนี้</span><b id="he-total">${baht(tot,tot%1!==0)}</b></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" type="button" id="he-save" style="flex:1">บันทึกการแก้ไข</button><span class="confirm"><button class="btn danger" type="button" id="he-void">ยกเลิกทั้งบิล</button></span></div>`;
+}
+async function saveEdit(lines){const btn=$("#he-save");if(btn)btn.disabled=true;
+  try{const r=await call("editSale",E.id,{ws:E.ws,lines});reportDirty=true;apply(r.state);H.list=r.day;E=null;renderDay();renderEdit();toast(lines.length?"แก้ไขรายการขายแล้ว":"ยกเลิกบิลแล้ว")}
+  catch(e){if(String(e&&e.message).includes("PIN"))return showPin();toast(errMsg(e),true)}finally{if(btn)btn.disabled=false}}
+$("#h-load").addEventListener("click",()=>loadDay());
+$("#h-date").addEventListener("change",()=>loadDay());
+$("#h-list").addEventListener("click",e=>{const b=e.target.closest("[data-hedit]");if(b)openEdit(b.dataset.hedit)});
+$("#h-edit").addEventListener("input",e=>{const i=e.target.dataset.he;if(i==null||e.target.tagName==="SELECT")return;const k=e.target.dataset.k;E.lines[i][k]=e.target.value;
+  if(k==="amount")E.lines[i].manual=true;else{E.lines[i].manual=false;calcEdit();const a=$("#he-a-"+i);E.lines.forEach((l,j)=>{const x=$("#he-a-"+j);if(x&&x!==document.activeElement)x.value=Math.round((+l.amount||0)*100)/100})}
+  const tot=E.lines.reduce((a,l)=>a+(+l.amount||0),0);$("#he-total").textContent=baht(tot,tot%1!==0)});
+$("#h-edit").addEventListener("change",e=>{const i=e.target.dataset.he;if(i==null||e.target.tagName!=="SELECT")return;E.lines[i][e.target.dataset.k]=e.target.value;E.lines[i].manual=false;calcEdit();renderEdit()});
+$("#h-edit").addEventListener("click",e=>{const t=e.target.closest("button");if(!t)return;
+  if(t.id==="he-close"){E=null;renderEdit();return}
+  if(t.dataset.hmode){E.ws=t.dataset.hmode==="ws";E.lines.forEach(l=>l.manual=false);calcEdit();renderEdit();return}
+  if(t.dataset.hex!=null){E.lines.splice(+t.dataset.hex,1);calcEdit();renderEdit();return}
+  if(t.id==="he-add"){E.lines.push({pid:"",unit:E.ws?"pack":"pc",qty:1,amount:0,manual:false});renderEdit();return}
+  if(t.id==="he-save"){const lines=E.lines.filter(l=>l.pid&&+l.qty>0).map(l=>({pid:l.pid,unit:l.unit,qty:+l.qty,amount:+l.amount||0}));
+    if(!lines.length){toast("ต้องมีอย่างน้อย 1 รายการ หรือกด “ยกเลิกทั้งบิล”",true);return}saveEdit(lines);return}
+  if(t.id==="he-void"){t.parentElement.innerHTML=`<span class="small">ยกเลิกทั้งบิลนี้?</span><button class="btn danger mini" type="button" id="he-void-yes">ยืนยัน</button>`;return}
+  if(t.id==="he-void-yes"){saveEdit([]);return}});
 
 /* ---------- QR scan (ถ่ายรูปป้าย) ---------- */
 function parseCode(txt){const m=/SBK:([A-Za-z0-9_-]+)/.exec(txt||"");return m?m[1]:null}
@@ -439,7 +570,7 @@ let camStream=null,camTimer=null,lastCode="",lastAt=0,detector=null,actx=null;
 const camCanvas=document.createElement("canvas");
 function beep(){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();const o=actx.createOscillator(),g=actx.createGain();o.frequency.value=1200;g.gain.value=.08;o.connect(g);g.connect(actx.destination);o.start();o.stop(actx.currentTime+.09)}catch(e){}
   try{navigator.vibrate&&navigator.vibrate(60)}catch(e){}}
-function camSum(){const n=Object.values(S.cart).reduce((a,b)=>a+b,0);$("#cam-sum").textContent=n?`ในตะกร้า ${n} ลูก`:"ตะกร้าว่าง"}
+function camSum(){const n=Object.values(S.cart).reduce((a,b)=>a+b,0),k=Object.values(S.cartPk).reduce((a,b)=>a+b,0);$("#cam-sum").textContent=n||k?`ในตะกร้า ${[n?n+" ลูก":"",k?k+" แพ็ค":""].filter(Boolean).join(" + ")}`:"ตะกร้าว่าง"}
 async function openCam(){
   if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)){$("#scanfile").click();return}
   $("#cam").hidden=false;camSum();try{actx=actx||new (window.AudioContext||window.webkitAudioContext)()}catch(e){}
@@ -569,7 +700,7 @@ function bucketLabel(b,g){
   if(g==="w"){const s=kd(b),e=new Date(s);e.setDate(e.getDate()+6);return fmtD(s,{day:"numeric",month:"short"})+" – "+fmtD(e,{day:"numeric",month:"short",year:"2-digit"})}
   if(g==="m"){const [y,m]=b.split("-").map(Number);return fmtD(new Date(y,m-1,1),{month:"long",year:"numeric"})}
   return "ปี "+(+b+543)}
-function aggregate(byDay,g,filter){const o={};for(const [k,v] of Object.entries(byDay)){if(filter&&!filter(k))continue;const b=bucketOf(k,g);const x=o[b]||(o[b]={rev:0,cost:0,waste:0,q:0,exp:0});x.rev+=v.rev;x.cost+=v.cost;x.waste+=v.waste;x.q+=v.q||0;x.exp+=v.exp||0}return o}
+function aggregate(byDay,g,filter){const o={};for(const [k,v] of Object.entries(byDay)){if(filter&&!filter(k))continue;const b=bucketOf(k,g);const x=o[b]||(o[b]={rev:0,cost:0,waste:0,q:0,exp:0,ws:0});x.rev+=v.rev;x.cost+=v.cost;x.waste+=v.waste;x.q+=v.q||0;x.exp+=v.exp||0;x.ws+=v.ws||0}return o}
 $("#range").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;curRange=b.dataset.r;curOff=0;
   $("#range").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false"));loadReport()});
 $("#p-prev").addEventListener("click",()=>{curOff--;loadReport()});
@@ -586,10 +717,10 @@ function renderPeriodNav(Pd){$("#pnav").hidden=!Pd;if(!Pd)return;
   const names={d:["วันนี้","เมื่อวาน"],w:["สัปดาห์นี้","สัปดาห์ที่แล้ว"],m:["เดือนนี้","เดือนที่แล้ว"],y:["ปีนี้","ปีที่แล้ว"]}[curRange];
   $("#p-label").textContent=bucketLabel(bucketOf(Pd.sk,curRange),curRange);$("#p-sub").textContent=curOff===0?names[0]:curOff===-1?names[1]:"";$("#p-next").disabled=curOff===0}
 function renderReport(Pd){
-  const f=Pd?k=>k>=Pd.sk&&k<=Pd.ek:null;const t=Object.values(aggregate(R.byDay,"y",f)).reduce((a,x)=>({rev:a.rev+x.rev,cost:a.cost+x.cost,waste:a.waste+x.waste,q:a.q+x.q,exp:a.exp+x.exp}),{rev:0,cost:0,waste:0,q:0,exp:0});
+  const f=Pd?k=>k>=Pd.sk&&k<=Pd.ek:null;const t=Object.values(aggregate(R.byDay,"y",f)).reduce((a,x)=>({rev:a.rev+x.rev,cost:a.cost+x.cost,waste:a.waste+x.waste,q:a.q+x.q,exp:a.exp+x.exp,ws:a.ws+x.ws}),{rev:0,cost:0,waste:0,q:0,exp:0,ws:0});
   const gp=t.rev-t.cost,net=gp-t.waste-t.exp,m=t.rev?gp/t.rev*100:0;
   $("#kpis").innerHTML=`<div class="kpi main"><span>กำไรสุทธิ (หักต้นทุน ของเสีย และค่าใช้จ่าย)</span><b style="${net<0?"color:var(--bad)":""}">${baht(net)}</b></div>
-  <div class="kpi"><span>ยอดขาย · ${num(t.q)} ชิ้น</span><b>${baht(t.rev)}</b></div><div class="kpi"><span>ต้นทุนสินค้าที่ขาย</span><b>${baht(t.cost)}</b></div>
+  <div class="kpi"><span>ยอดขาย · ${num(t.q)} ลูก</span><b>${baht(t.rev)}</b>${t.ws?`<span>ขายส่ง ${baht(t.ws)} · ทั่วไป ${baht(t.rev-t.ws)}</span>`:""}</div><div class="kpi"><span>ต้นทุนสินค้าที่ขาย</span><b>${baht(t.cost)}</b></div>
   <div class="kpi"><span>กำไรขั้นต้น · ${num(m.toFixed(1))}%</span><b>${baht(gp)}</b></div><div class="kpi"><span>ของเสีย (ทุน)</span><b>${baht(t.waste)}</b></div>
   <div class="kpi"><span>ค่าใช้จ่ายอื่น</span><b>${baht(t.exp)}</b></div><div class="kpi"><span>ต้นทุนรวมทั้งหมด</span><b>${baht(t.cost+t.waste+t.exp)}</b></div>`;
   {const cats=Object.entries(R.byCat||{}).sort((a,b)=>b[1]-a[1]);$("#catcard").hidden=!cats.length;
@@ -633,10 +764,16 @@ function renderGroups(){
   el.innerHTML=gs.map(g=>`<div class="li" style="flex-direction:column;align-items:stretch;gap:6px"><b>${esc(g.name)}</b>
     <div class="g3"><div class="f"><label for="gp-${esc(g.name)}">ลูกต่อแพ็ค</label><input id="gp-${esc(g.name)}" type="number" inputmode="numeric" min="1" value="${esc(g.pack)}" data-g="${esc(g.name)}" data-gf="pack"></div>
     <div class="f"><label for="gq-${esc(g.name)}">โปร: ซื้อครบ (ลูก)</label><input id="gq-${esc(g.name)}" type="number" inputmode="numeric" min="0" placeholder="ไม่มีโปร" value="${esc(g.promoQty||"")}" data-g="${esc(g.name)}" data-gf="promoQty"></div>
-    <div class="f"><label for="gr-${esc(g.name)}">โปร: ราคา (บาท)</label><input id="gr-${esc(g.name)}" type="number" inputmode="decimal" min="0" placeholder="–" value="${esc(g.promoPrice||"")}" data-g="${esc(g.name)}" data-gf="promoPrice"></div></div></div>`).join("");
+    <div class="f"><label for="gr-${esc(g.name)}">โปร: ราคา (บาท)</label><input id="gr-${esc(g.name)}" type="number" inputmode="decimal" min="0" placeholder="–" value="${esc(g.promoPrice||"")}" data-g="${esc(g.name)}" data-gf="promoPrice"></div>
+    <div class="f"><label for="gk-${esc(g.name)}">ราคาแพ็ค (ทั่วไป)</label><input id="gk-${esc(g.name)}" type="number" inputmode="decimal" min="0" placeholder="ไม่ขายแพ็ค" value="${esc(g.packPrice||"")}" data-g="${esc(g.name)}" data-gf="packPrice"></div>
+    <div class="f"><label for="gw-${esc(g.name)}">ราคาส่ง/แพ็ค</label><input id="gw-${esc(g.name)}" type="number" inputmode="decimal" min="0" placeholder="ยังไม่ตั้ง" value="${esc(g.wsPrice||"")}" data-g="${esc(g.name)}" data-gf="wsPrice"></div></div></div>`).join("");
 }
 $("#glist").addEventListener("change",e=>{const n=e.target.dataset.g;if(!n)return;const g={...S.groups[n]};g[e.target.dataset.gf]=e.target.value===""?"":+e.target.value;
-  act("saveGroup",[{name:n,pack:g.pack,promoQty:g.promoQty,promoPrice:g.promoPrice}],"บันทึกแล้ว")});
+  act("saveGroup",[{name:n,pack:g.pack,promoQty:g.promoQty,promoPrice:g.promoPrice,packPrice:g.packPrice,wsPrice:g.wsPrice}],"บันทึกแล้ว")});
+$("#ng-save").addEventListener("click",async()=>{const n=$("#ng-name").value.trim();if(!n){toast("ใส่ชื่อกลุ่ม",true);return}
+  const pq=$("#ng-pq").value,pp=$("#ng-pp").value;if((pq&&!pp)||(!pq&&pp)){toast("โปรต้องใส่ทั้งจำนวนที่ซื้อครบและราคา",true);return}
+  if(await act("addGroup",[{name:n,pack:$("#ng-pack").value,promoQty:pq,promoPrice:pp,packPrice:$("#ng-kp").value,wsPrice:$("#ng-wp").value,keys:$("#ng-keys").value.trim()}],"เพิ่มกลุ่ม "+n+" แล้ว",$("#ng-save")))
+    ["#ng-name","#ng-pq","#ng-pp","#ng-kp","#ng-wp","#ng-keys"].forEach(x=>$(x).value=""),$("#ng-pack").value=1});
 function renderProducts(){
   const el=$("#plist");const ps=plist(true);
   if(!ps.length){el.innerHTML=`<div class="empty">ยังไม่มีสินค้า เพิ่มได้ด้านล่าง</div>`;return}
@@ -661,8 +798,11 @@ $("#np-save").addEventListener("click",async()=>{const name=$("#np-name").value.
 document.addEventListener("click",e=>{
   const t=e.target.closest("button");if(!t)return;const d=t.dataset;
   if(d.v){go(d.v);return}
-  if(d.add){addToCart(d.add,1);return} if(d.inc){addToCart(d.inc,1);return} if(d.dec){addToCart(d.dec,-1);return}
-  if(t.id==="cart-clear"){S.cart={};renderCart();renderTiles();return}
+  if(d.qkey){openPad(d.qkey);return}
+  if(d.hedit&&t.closest("#todaylist")){loadDay(today(),d.hedit);return}
+  if(d.add){addToCart(d.add,1);return} if(d.addpk){addPack(d.addpk,1);return}
+  if(d.inc||d.dec){const k=d.inc||d.dec,n=d.inc?1:-1,id=k.slice(3);bump(k.startsWith("pk:")?S.cartPk:S.cart,id,n);renderCart();renderTiles();return}
+  if(t.id==="cart-clear"){S.cart={};S.cartPk={};renderCart();renderTiles();return}
   if(t.id==="cart-ok"){checkout();return}
   if(d.void||d.delbill||d.xvoid){t.parentElement.innerHTML=`<span class="small">แน่ใจ?</span><button class="btn danger mini" type="button" data-yes="${esc(d.void?"v:"+d.void:d.xvoid?"x:"+d.xvoid:"b:"+d.delbill)}">${d.delbill?"ลบบิล":"ยกเลิกรายการ"}</button><button class="btn ghost mini" type="button" data-no="1">ไม่</button>`;return}
   if(d.no){renderAll();return}
@@ -723,7 +863,7 @@ async function boot(){
     else{$("#status").hidden=false;$("#status").className="notice";$("#status").textContent="โหลดข้อมูลไม่สำเร็จ: "+errMsg(e)}}
 }
 if(/Line\/|FBAN|FBAV|Instagram|MicroMessenger/i.test(navigator.userAgent))$("#inapp").hidden=false;
-$("#b-date").value=dkey(new Date());renderBLines();renderAll();go("sell");boot();
+$("#b-date").value=dkey(new Date());$("#h-date").value=dkey(new Date());renderBLines();renderAll();go("sell");boot();
 })();
 </script>
 
