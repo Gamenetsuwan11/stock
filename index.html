@@ -166,6 +166,12 @@ td.neg{color:var(--bad)}
 .hedit{border-color:var(--accent);border-width:2px}
 .hline{display:grid;grid-template-columns:1fr 1fr auto;gap:6px;align-items:end;padding-bottom:8px;border-bottom:1px dashed var(--line)}
 .hline>.f:first-child{grid-column:1/-1}
+.pbar{display:grid;grid-template-columns:minmax(0,9.5em) 1fr;gap:4px 8px;align-items:center;font-size:13px}
+.pbar .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pbar .tr{position:relative;height:22px;background:var(--sunk);border-radius:6px;overflow:hidden}
+.pbar .fl{position:absolute;inset:0 auto 0 0;background:var(--accent);border-radius:6px}
+.pbar .lb{position:absolute;left:6px;top:50%;transform:translateY(-50%);font-size:12px;font-weight:600;color:var(--fg);white-space:nowrap;text-shadow:0 0 3px var(--surface)}
+.plan-sum{display:flex;justify-content:space-between;align-items:baseline;font-size:15px}.plan-sum b{font-size:20px}
 .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%}
 </style>
 </head>
@@ -252,6 +258,19 @@ td.neg{color:var(--bad)}
 
   <!-- สต็อก -->
   <section class="view" id="v-stock" hidden>
+    <div class="card" id="plan">
+      <h2 style="margin:0">วางแผนซื้อเพิ่ม</h2>
+      <p class="small muted" style="margin:0">ใช้ยอดขายเฉลี่ยต่อวันที่เปิดร้าน หักยอดที่น่าจะขายก่อนถึงวันซื้อ แล้วคิดว่าต้องซื้อกี่แพ็คให้พอขายตามจำนวนวัน</p>
+      <div class="row2">
+        <div class="f"><label for="pl-date">วันที่จะซื้อ</label><input type="date" id="pl-date"></div>
+        <div class="f"><label for="pl-days">ให้พอขายกี่วัน</label><input type="number" id="pl-days" inputmode="numeric" min="1" value="6"></div>
+        <div class="f"><label for="pl-back">ดูยอดขายย้อนหลัง (วัน)</label><input type="number" id="pl-back" inputmode="numeric" min="1" max="90" value="14"></div>
+        <div class="f"><label for="pl-safe">เผื่อเพิ่ม (%)</label><input type="number" id="pl-safe" inputmode="numeric" min="0" value="10"></div>
+        <div class="f"><label for="pl-off">ร้านหยุดวัน</label><select id="pl-off"><option value="-1">ไม่มีวันหยุด</option><option value="0" selected>อาทิตย์</option><option value="1">จันทร์</option><option value="2">อังคาร</option><option value="3">พุธ</option><option value="4">พฤหัสบดี</option><option value="5">ศุกร์</option><option value="6">เสาร์</option></select></div>
+      </div>
+      <button class="btn primary" id="pl-go" type="button">คำนวณรายการที่ต้องซื้อ</button>
+      <div id="pl-out"></div>
+    </div>
     <div class="kpis" id="stockkpis"></div>
     <div class="tbl"><table>
       <thead><tr><th>สินค้า</th><th>คงเหลือ</th><th>ทุน/ชิ้น</th><th>มูลค่าทุน</th><th>สถานะ</th></tr></thead>
@@ -287,6 +306,7 @@ td.neg{color:var(--bad)}
     <div class="kpis" id="kpis"></div>
     <div class="card chart" id="chartcard"><h2 style="margin:0" id="chart-title">ยอดขายและกำไร</h2><div id="chart"></div></div>
     <div class="card" id="catcard"><h2 style="margin:0">ค่าใช้จ่ายแยกหมวด</h2><div class="list" id="catlist"></div></div>
+    <div class="card chart" id="pchartcard"><h2 style="margin:0">ยอดขายแยกตามสินค้า</h2><div id="pchart"></div></div>
     <h2>แยกตามสินค้า</h2>
     <div class="tbl"><table>
       <thead><tr><th>สินค้า</th><th>ขาย (ชิ้น)</th><th>ยอดขาย</th><th>ต้นทุน</th><th>กำไร</th></tr></thead>
@@ -740,7 +760,7 @@ function renderReport(Pd){
   $("#repbody").innerHTML=rows.map(x=>{T.q+=x.q;T.rev+=x.rev;T.cost+=x.cost;return `<tr><td>${esc(x.name)}</td><td>${num(x.q)}</td><td>${baht(x.rev)}</td><td>${baht(x.cost)}</td><td><b>${baht(x.rev-x.cost)}</b></td></tr>`}).join("")||`<tr><td colspan="5" class="empty">ยังไม่มีการขายในช่วงนี้</td></tr>`;
   $("#repfoot").innerHTML=rows.length?`<tr><td>รวม</td><td>${num(T.q)}</td><td>${baht(T.rev)}</td><td>${baht(T.cost)}</td><td>${baht(T.rev-T.cost)}</td></tr>`:"";
   $("#repnote").textContent="ต้นทุนคิดจากราคาเฉลี่ยในบิลรับเข้า ณ เวลาที่ขาย · ข้อมูลทั้งหมดอยู่ใน Google Sheet ชีต “รายการขาย”";
-  renderChart(Pd);renderGranTable();
+  renderChart(Pd);renderGranTable();renderPChart();
 }
 function renderChart(Pd){
   const box=$("#chart"),card=$("#chartcard");if(curRange==="d"){card.hidden=true;return}card.hidden=false;
@@ -757,6 +777,10 @@ function renderChart(Pd){
   box.innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="กราฟยอดขายและกำไร">${gr}${bars}</svg>
   <div class="small muted" style="display:flex;gap:14px"><span><span class="pill" style="background:var(--accent-soft)">&nbsp;</span> ยอดขาย</span><span><span class="pill" style="background:var(--accent)">&nbsp;</span> กำไร</span></div>`;
 }
+/* กราฟแท่งแนวนอน: ยอดขายแยกตามสินค้าในช่วงที่เลือก */
+function renderPChart(){const rows=Object.values(R.byP||{}).filter(x=>x.rev>0).sort((a,b)=>b.rev-a.rev);
+  $("#pchartcard").hidden=!rows.length;if(!rows.length)return;const mx=rows[0].rev;
+  $("#pchart").innerHTML=`<div class="pbar">${rows.map(x=>`<div class="nm" title="${esc(x.name)}">${esc(x.name)}</div><div class="tr"><div class="fl" style="width:${Math.max(2,x.rev/mx*100)}%;opacity:.85"></div><span class="lb">${baht(x.rev)} · ${num(x.q)} ลูก</span></div>`).join("")}</div>`}
 function renderGranTable(){
   const g=curGran;$("#g-head").textContent={d:"วันที่",w:"สัปดาห์",m:"เดือน",y:"ปี"}[g];
   const ag=aggregate(R.byDay,g);const ks=Object.keys(ag).sort().reverse().slice(0,g==="d"?60:g==="w"?26:24);const T={q:0,rev:0,cost:0,waste:0,exp:0};
@@ -820,6 +844,39 @@ document.addEventListener("click",e=>{
   if(d.yes){const k=d.yes[0],v=d.yes.slice(2);if(k==="v")act("voidTx",[v],"ยกเลิกรายการแล้ว สต็อกคืนแล้ว",t);else if(k==="x")act("voidExpense",[v],"ยกเลิกค่าใช้จ่ายแล้ว",t);else act("deleteBill",[v],"ลบบิลแล้ว",t)}
 });
 
+/* ---------- วางแผนซื้อเพิ่ม ---------- */
+function nextMonday(){const d=kd(today());const add=(8-d.getDay())%7;d.setDate(d.getDate()+add);return dkey(d)}
+let planText="";
+async function runPlan(){
+  const buyK=$("#pl-date").value||nextMonday(),cyc=Math.max(1,+$("#pl-days").value||6),back=Math.max(1,+$("#pl-back").value||14),safe=Math.max(0,+$("#pl-safe").value||0)/100,off=+$("#pl-off").value;
+  const out=$("#pl-out");out.innerHTML=`<div class="empty">กำลังคำนวณ…</div>`;
+  let r;try{r=await call("getPlan",back)}catch(e){out.innerHTML=`<div class="empty">${esc(errMsg(e))}</div>`;return}
+  if(!r.sellDays){out.innerHTML=`<div class="notice small">ยังไม่มียอดขายย้อนหลัง ${back} วัน ระบบจึงคำนวณไม่ได้ ลองเพิ่มจำนวนวันย้อนหลัง</div>`;return}
+  // วันเปิดร้านหลังวันนี้ จนถึงก่อนวันซื้อ
+  const t=kd(today()),b=kd(buyK);let pre=0;for(let d=new Date(t);d.setDate(d.getDate()+1),d<b;)if(d.getDay()!==off)pre++;
+  const todayOpen=t.getDay()!==off&&b>t;
+  const rows=plist().map(p=>{const avg=(r.byP[p.id]||0)/r.sellDays,k=packOf(p),stock=Math.max(0,S.stock[p.id]||0);
+    const restToday=todayOpen?Math.max(0,avg-(r.todayP[p.id]||0)):0;
+    const atBuy=Math.max(0,stock-avg*pre-restToday);           // คาดว่าจะเหลือ ณ วันซื้อ
+    const need=avg*cyc*(1+safe);                                 // ต้องมีให้พอขายตามจำนวนวัน
+    const short=Math.max(0,need-atBuy),packs=Math.ceil(short/k-1e-9);
+    const price=S.lastPack[p.id]||(S.cost[p.id]||0)*k;
+    return {p,avg,k,stock,atBuy,need,packs,cost:packs*price,price}});
+  const tot=rows.reduce((a,x)=>a+x.cost,0),totPk=rows.reduce((a,x)=>a+x.packs,0);
+  const buyLabel=fmtD(b,{weekday:"long",day:"numeric",month:"short"});
+  planText=`รายการสั่งซื้อ ${buyLabel}\n`+rows.filter(x=>x.packs>0).map(x=>`- ${x.p.name} ${x.packs} แพ็ค`).join("\n")+`\nรวม ${totPk} แพ็ค`;
+  out.innerHTML=`<p class="small muted" style="margin:0">ยอดขายเฉลี่ยจาก ${r.sellDays} วันที่เปิดขาย (${thDate(r.from)} – เมื่อวาน) · ก่อนถึงวันซื้อยังขายอีก ${pre} วัน${todayOpen?" + ที่เหลือของวันนี้":""}</p>
+  <div class="tbl"><table><thead><tr><th>สินค้า</th><th>ขาย/วัน</th><th>คงเหลือตอนนี้</th><th>เหลือ ณ วันซื้อ</th><th>ต้องมี ${cyc} วัน</th><th>ซื้อ</th><th>≈ เงิน</th></tr></thead>
+  <tbody>${rows.map(x=>`<tr><td>${esc(x.p.name)}</td><td>${num(x.avg.toFixed(1))}</td><td>${num(x.stock)}</td><td>${num(Math.round(x.atBuy))}</td><td>${num(Math.ceil(x.need))}</td><td><b>${x.packs?x.packs+" แพ็ค":"–"}</b>${x.packs?`<div class="small muted">${num(x.packs*x.k)} ลูก</div>`:""}</td><td>${x.packs&&x.price?baht(x.cost):"–"}</td></tr>`).join("")}</tbody>
+  <tfoot><tr><td>รวม</td><td></td><td></td><td></td><td></td><td>${totPk} แพ็ค</td><td>${baht(tot)}</td></tr></tfoot></table></div>
+  <div class="plan-sum"><span>ต้องซื้อ${buyLabel}</span><b>${totPk} แพ็ค ≈ ${baht(tot)}</b></div>
+  <p class="small muted" style="margin:0">≈ เงิน คิดจากราคาต่อแพ็คในบิลล่าสุด · เป็นการประมาณจากยอดขายที่ผ่านมา ปรับตามจริงได้</p>
+  <button class="btn" type="button" id="pl-copy">คัดลอกรายการสั่งซื้อ (ส่ง LINE)</button>`;
+}
+$("#pl-go").addEventListener("click",runPlan);
+$("#plan").addEventListener("click",async e=>{if(e.target.id!=="pl-copy")return;
+  try{await navigator.clipboard.writeText(planText);toast("คัดลอกแล้ว วางใน LINE ได้เลย")}catch(err){const ta=document.createElement("textarea");ta.value=planText;document.body.appendChild(ta);ta.select();try{document.execCommand("copy");toast("คัดลอกแล้ว")}catch(x){toast("คัดลอกไม่ได้",true)}ta.remove()}});
+
 /* ---------- ค่าใช้จ่าย ---------- */
 let xCat=null,pressT=null,pressed=false;
 function renderExpense(){
@@ -874,7 +931,7 @@ async function boot(){
     else{$("#status").hidden=false;$("#status").className="notice";$("#status").textContent="โหลดข้อมูลไม่สำเร็จ: "+errMsg(e)}}
 }
 if(/Line\/|FBAN|FBAV|Instagram|MicroMessenger/i.test(navigator.userAgent))$("#inapp").hidden=false;
-$("#b-date").value=dkey(new Date());$("#h-date").value=dkey(new Date());renderBLines();renderAll();go("sell");boot();
+$("#b-date").value=dkey(new Date());$("#pl-date").value=nextMonday();$("#h-date").value=dkey(new Date());renderBLines();renderAll();go("sell");boot();
 })();
 </script>
 
